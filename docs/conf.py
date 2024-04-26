@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.abspath('..'))  # noqa
 os.environ["DJANGO_SETTINGS_MODULE"] = "pulpcore.app.settings"
 
 import django
+
 django.setup()
 
 # -- General configuration -----------------------------------------------------
@@ -64,7 +65,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Pulp cran Support'
+project = u'Pulp r Support'
 
 # Set copyright to current year
 copyright = u'2012-{0}, Pulp Team'.format(date.today().year)
@@ -257,6 +258,7 @@ napoleon_use_ivar = True
 default_domain = 'py'
 
 from sphinx.domains.python import PythonDomain
+
 
 # Adapted from:
 # https://github.com/sphinx-doc/sphinx/issues/3866#issuecomment-366014346

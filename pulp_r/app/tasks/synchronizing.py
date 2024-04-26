@@ -11,7 +11,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 
-from pulp_r.app.models import CRANPackage, CRANRemote
+from pulp_r.app.models import RPackage, RRemote
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def synchronize(remote_pk, repository_pk, mirror):
     Raises:
         ValueError: If the remote does not specify a URL to sync
     """
-    remote = CRANRemote.objects.get(pk=remote_pk)
+    remote = RRemote.objects.get(pk=remote_pk)
     repository = Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
@@ -39,11 +39,11 @@ def synchronize(remote_pk, repository_pk, mirror):
     # Interpret policy to download Artifacts or not
     deferred_download = remote.policy != Remote.IMMEDIATE
 
-    first_stage = CRANFirstStage(remote, deferred_download)
+    first_stage = RFirstStage(remote, deferred_download)
     DeclarativeVersion(first_stage, repository, mirror=mirror).create()
 
 
-class CRANFirstStage(Stage):
+class RFirstStage(Stage):
     """
     The first stage of a pulp_r sync pipeline.
     """
@@ -71,13 +71,13 @@ class CRANFirstStage(Stage):
         downloader = self.remote.get_downloader(url=self.remote.url)
         result = await downloader.run()
 
-        with ProgressReport(message='Parsing CRAN metadata', code='parsing.metadata') as pb:
+        with ProgressReport(message='Parsing R metadata', code='parsing.metadata') as pb:
             packages_path = result.path
             pb.total = len(list(self.parse_packages_file(packages_path)))
             pb.done = pb.total
 
             for entry in self.parse_packages_file(packages_path):
-                package = CRANPackage(
+                package = RPackage(
                     name=entry['Package'],
                     version=entry['Version'],
                     summary=entry.get('Title', ''),
@@ -102,7 +102,7 @@ class CRANFirstStage(Stage):
 
     def parse_packages_file(self, path):
         """
-        Parse the PACKAGES file containing CRAN package metadata.
+        Parse the PACKAGES file containing R package metadata.
 
         Args:
             path: Path to the PACKAGES file
@@ -125,10 +125,10 @@ class CRANFirstStage(Stage):
 
     def parse_dependencies(self, entry, dep_type):
         """
-        Parse package dependencies from a CRAN metadata entry.
+        Parse package dependencies from a R metadata entry.
 
         Args:
-            entry: A dictionary representing a CRAN package metadata entry
+            entry: A dictionary representing a R package metadata entry
             dep_type: The type of dependency to parse (Depends, Imports, Suggests, Requires)
         """
         dependencies = []

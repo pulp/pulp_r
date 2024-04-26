@@ -6,28 +6,27 @@ from random import choice
 from urllib.parse import urljoin
 
 from pulp_smash import config, utils
-from pulp_smash.pulp3.utils import download_content_unit, gen_distribution, gen_repo
 from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.utils import download_content_unit, gen_distribution, gen_repo
+from pulpcore.client.pulp_r import (
+    CranCranPublication,
+    DistributionsCranApi,
+    PublicationsCranApi,
+    RemotesCranApi,
+    RepositoriesCranApi,
+    RepositorySyncURL,
+)
 
-from pulp_r.tests.functional.constants import CRAN_FIXTURE_URL
+from pulp_r.tests.functional.constants import R_FIXTURE_URL
 from pulp_r.tests.functional.utils import (
-    gen_cran_client,
-    get_cran_content_paths,
-    gen_cran_remote,
+    gen_r_client,
+    gen_r_remote,
+    get_r_content_paths,
 )
 from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
-from pulpcore.client.pulp_r import (
-    DistributionsCranApi,
-    PublicationsCranApi,
-    RepositoriesCranApi,
-    RepositorySyncURL,
-    RemotesCranApi,
-    CranCranPublication,
-)
 
-
-# Implement tests.functional.utils.get_cran_content_unit_paths(),
+# Implement tests.functional.utils.get_r_content_unit_paths(),
 # as well as sync and publish support before enabling this test.
 @unittest.skip("FIXME: plugin writer action required")
 class DownloadContentTestCase(unittest.TestCase):
@@ -60,7 +59,7 @@ class DownloadContentTestCase(unittest.TestCase):
         * `Pulp Smash #872 <https://github.com/pulp/pulp-smash/issues/872>`_
         """
         cfg = config.get_config()
-        client = gen_cran_client()
+        client = gen_r_client()
         repo_api = RepositoriesCranApi(client)
         remote_api = RemotesCranApi(client)
         publications = PublicationsCranApi(client)
@@ -69,7 +68,7 @@ class DownloadContentTestCase(unittest.TestCase):
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
 
-        body = gen_cran_remote()
+        body = gen_r_remote()
         remote = remote_api.create(body)
         self.addCleanup(remote_api.delete, remote.pulp_href)
 
@@ -95,9 +94,9 @@ class DownloadContentTestCase(unittest.TestCase):
         self.addCleanup(distributions.delete, distribution.pulp_href)
 
         # Pick a content unit (of each type), and download it from both Pulp Fixtures…
-        unit_paths = [choice(paths) for paths in get_cran_content_paths(repo.to_dict()).values()]
+        unit_paths = [choice(paths) for paths in get_r_content_paths(repo.to_dict()).values()]
         fixtures_hashes = [
-            hashlib.sha256(utils.http_get(urljoin(CRAN_FIXTURE_URL, unit_path[0]))).hexdigest()
+            hashlib.sha256(utils.http_get(urljoin(R_FIXTURE_URL, unit_path[0]))).hexdigest()
             for unit_path in unit_paths
         ]
 

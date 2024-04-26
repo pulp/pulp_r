@@ -14,7 +14,7 @@ setup(
     license="GPLv2+",
     author="AUTHOR",
     author_email="author@email.here",
-    url="http://example.com/",
+    url="https://www.pulpproject.org",
     python_requires=">=3.9",
     install_requires=requirements,
     extra_require={"ci": []},

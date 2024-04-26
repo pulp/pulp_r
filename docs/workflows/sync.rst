@@ -9,13 +9,13 @@ Create a Repository
 
 Start by creating a new repository named "foo"::
 
-    $ http POST ${BASE_ADDR}/pulp/api/v3/repositories/cran/cran/ name=foo
+    $ http POST ${BASE_ADDR}/pulp/api/v3/repositories/r/r/ name=foo
 
 Response::
 
     {
         ...
-        "pulp_href": "/pulp/api/v3/repositories/cran/cran/dfca3ec4-b5cf-474f-b561-25a9cb58f260/",
+        "pulp_href": "/pulp/api/v3/repositories/r/r/dfca3ec4-b5cf-474f-b561-25a9cb58f260/",
         ...
     }
 
@@ -25,13 +25,13 @@ Create a Remote
 
 Creating a remote object informs Pulp about an external content source::
 
-    $ http POST ${BASE_ADDR}/pulp/pulp/api/v3/remotes/cran/cran/ name='bar' url='http://some.url/somewhere/'
+    $ http POST ${BASE_ADDR}/pulp/pulp/api/v3/remotes/r/r/ name='bar' url='http://some.url/somewhere/'
 
 Response::
 
     {
         ...
-        "pulp_href": "/pulp/api/v3/remotes/cran/cran/e54203d8-afd5-4091-9fae-dad6419f8bfd/",
+        "pulp_href": "/pulp/api/v3/remotes/r/r/e54203d8-afd5-4091-9fae-dad6419f8bfd/",
         ...
     }
 
@@ -86,8 +86,8 @@ Response::
         "pulp_created": "2021-07-20T10:27:14.874408Z",
         "pulp_href": "/pulp/api/v3/tasks/88071cc2-10a7-4544-83ec-15f272cc28b1/",
         "reserved_resources_record": [
-            "/pulp/api/v3/repositories/cran/cran/dfca3ec4-b5cf-474f-b561-25a9cb58f260/",
-            "/pulp/api/v3/remotes/cran/cran/e54203d8-afd5-4091-9fae-dad6419f8bfd/"
+            "/pulp/api/v3/repositories/r/r/dfca3ec4-b5cf-474f-b561-25a9cb58f260/",
+            "/pulp/api/v3/remotes/r/r/e54203d8-afd5-4091-9fae-dad6419f8bfd/"
         ],
         "started_at": "2021-07-20T10:27:14.937455Z",
         "state": "completed",

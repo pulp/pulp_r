@@ -1,1 +1,1 @@
-"""Tests that communicate with cran plugin via the v3 API."""
+"""Tests that communicate with r plugin via the v3 API."""

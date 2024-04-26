@@ -19,11 +19,11 @@ from pulpcore.plugin.models import (
 
 logger = getLogger(__name__)
 
-class CRANPackage(Content):
+class RPackage(Content):
     """
-    The "cran" content type representing a CRAN R package.
+    The "r" content type representing an R package.
     """
-    TYPE = "cran"
+    TYPE = "r"
 
     name = models.TextField()
     version = models.TextField()
@@ -40,39 +40,39 @@ class CRANPackage(Content):
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ['name', 'version']
 
-class CRANPublication(Publication):
+class RPublication(Publication):
     """
-    A Publication for CRANContent.
+    A Publication for RContent.
     """
-    TYPE = "cran"
+    TYPE = "r"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
-class CRANRemote(Remote):
+class RRemote(Remote):
     """
-    A Remote for CRANContent.
+    A Remote for RContent.
     """
-    TYPE = "cran"
+    TYPE = "r"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
-class CRANRepository(Repository):
+class RRepository(Repository):
     """
-    A Repository for CRANContent.
+    A Repository for RContent.
     """
-    TYPE = "cran"
-    CONTENT_TYPES = [CRANPackage]
+    TYPE = "r"
+    CONTENT_TYPES = [RPackage]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
-class CRANDistribution(Distribution):
+class RDistribution(Distribution):
     """
-    A Distribution for CRANContent.
+    A Distribution for RContent.
     """
-    TYPE = "cran"
+    TYPE = "r"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

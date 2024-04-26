@@ -1,6 +1,6 @@
 # pulp-r
 
-A Pulp plugin to support hosting your own cran.
+A Pulp plugin to support hosting your own r.
 
 ## Installation
 

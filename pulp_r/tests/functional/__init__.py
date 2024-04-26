@@ -1,1 +1,1 @@
-"""Tests for cran plugin."""
+"""Tests for r plugin."""

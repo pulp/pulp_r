@@ -11,7 +11,7 @@ from pulpcore.plugin.models import (
     RepositoryVersion,
 )
 
-from pulp_r.app.models import CRANPublication
+from pulp_r.app.models import RPublication
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def publish(repository_version_pk):
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        with CRANPublication.create(repository_version) as publication:
+        with RPublication.create(repository_version) as publication:
             # Write package artifacts to the file system
             for content in repository_version.content:
                 for content_artifact in content.contentartifact_set.all():
@@ -49,7 +49,7 @@ def publish(repository_version_pk):
             # Write PACKAGES file
             packages_path = os.path.join(temp_dir, 'PACKAGES')
             with open(packages_path, 'w') as packages_file:
-                for package in repository_version.cranpackage_set.all():
+                for package in repository_version.rpackage_set.all():
                     packages_file.write(generate_package_metadata(package))
                     packages_file.write('\n\n')
             metadata_files.append(packages_path)
@@ -78,10 +78,10 @@ def publish(repository_version_pk):
 
 def generate_package_metadata(package):
     """
-    Generate the metadata string for a CRAN package.
+    Generate the metadata string for a R package.
 
     Args:
-        package (CRANPackage): The CRAN package object.
+        package (RPackage): The R package object.
     """
     metadata = [
         f"Package: {package.name}",

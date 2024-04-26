@@ -1,21 +1,20 @@
-"""Tests that CRUD cran remotes."""
+"""Tests that CRUD r remotes."""
 
-from random import choice
 import unittest
+from random import choice
 
 from pulp_smash import utils
 from pulp_smash.pulp3.bindings import monitor_task
+from pulpcore.client.pulp_r import RemotesCranApi
+from pulpcore.client.pulp_r.exceptions import ApiException
 
 from pulp_r.tests.functional.constants import DOWNLOAD_POLICIES
 from pulp_r.tests.functional.utils import (
-    gen_cran_client,
-    gen_cran_remote,
+    gen_r_client,
+    gen_r_remote,
     skip_if,
 )
 from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_r import RemotesCranApi
-from pulpcore.client.pulp_r.exceptions import ApiException
 
 
 class CRUDRemotesTestCase(unittest.TestCase):
@@ -24,7 +23,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.remote_api = RemotesCranApi(gen_cran_client())
+        cls.remote_api = RemotesCranApi(gen_r_client())
 
     def test_01_create_remote(self):
         """Create a remote."""
@@ -43,7 +42,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
         See: `Pulp Smash #1055
         <https://github.com/pulp/pulp-smash/issues/1055>`_.
         """
-        body = gen_cran_remote()
+        body = gen_r_remote()
         body["name"] = self.remote.name
         with self.assertRaises(ApiException):
             self.remote_api.create(body)
@@ -111,10 +110,10 @@ class CreateRemoteNoURLTestCase(unittest.TestCase):
         * `Pulp #3395 <https://pulp.plan.io/issues/3395>`_
         * `Pulp Smash #984 <https://github.com/pulp/pulp-smash/issues/984>`_
         """
-        body = gen_cran_remote()
+        body = gen_r_remote()
         del body["url"]
         with self.assertRaises(ApiException):
-            RemotesCranApi(gen_cran_client()).create(body)
+            RemotesCranApi(gen_r_client()).create(body)
 
 
 class RemoteDownloadPolicyTestCase(unittest.TestCase):
@@ -146,7 +145,7 @@ class RemoteDownloadPolicyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.remote_api = RemotesCranApi(gen_cran_client())
+        cls.remote_api = RemotesCranApi(gen_r_client())
         cls.remote = {}
         cls.policies = DOWNLOAD_POLICIES
         cls.body = _gen_verbose_remote()
@@ -208,7 +207,7 @@ def _gen_verbose_remote():
 
     Note that 'username' and 'password' are write-only attributes.
     """
-    attrs = gen_cran_remote()
+    attrs = gen_r_remote()
     attrs.update(
         {"password": utils.uuid4(), "username": utils.uuid4(), "policy": choice(DOWNLOAD_POLICIES)}
     )

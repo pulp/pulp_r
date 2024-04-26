@@ -1,8 +1,8 @@
 pulp-r Plugin
 ================
 
-The ``cran`` plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`__ to support
-hosting cran packages. This plugin is a part of the `Pulp Project
+The ``r`` plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`__ to support
+hosting r packages. This plugin is a part of the `Pulp Project
 <http://www.pulpproject.org>`_, and assumes some familiarity with the `pulpcore documentation
 <https://docs.pulpproject.org/pulpcore/>`_.
 

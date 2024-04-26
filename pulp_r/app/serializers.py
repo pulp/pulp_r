@@ -13,9 +13,9 @@ from rest_framework import serializers
 from . import models
 
 
-class CRANPackageSerializer(platform.SingleArtifactContentSerializer):
+class RPackageSerializer(platform.SingleArtifactContentSerializer):
     """
-    A Serializer for CRANPackage.
+    A Serializer for RPackage.
     """
 
     name = serializers.CharField(help_text=_("The name of the package"))
@@ -34,12 +34,12 @@ class CRANPackageSerializer(platform.SingleArtifactContentSerializer):
             'name', 'version', 'summary', 'description', 'license', 'url',
             'depends', 'imports', 'suggests', 'requires'
         )
-        model = models.CRANPackage
+        model = models.RPackage
 
 
-class CRANRemoteSerializer(platform.RemoteSerializer):
+class RRemoteSerializer(platform.RemoteSerializer):
     """
-    A Serializer for CRANRemote.
+    A Serializer for RRemote.
     """
 
     policy = serializers.ChoiceField(
@@ -51,32 +51,32 @@ class CRANRemoteSerializer(platform.RemoteSerializer):
 
     class Meta:
         fields = platform.RemoteSerializer.Meta.fields
-        model = models.CRANRemote
+        model = models.RRemote
 
 
-class CRANRepositorySerializer(platform.RepositorySerializer):
+class RRepositorySerializer(platform.RepositorySerializer):
     """
-    A Serializer for CRANRepository.
+    A Serializer for RRepository.
     """
 
     class Meta:
         fields = platform.RepositorySerializer.Meta.fields
-        model = models.CRANRepository
+        model = models.RRepository
 
 
-class CRANPublicationSerializer(platform.PublicationSerializer):
+class RPublicationSerializer(platform.PublicationSerializer):
     """
-    A Serializer for CRANPublication.
+    A Serializer for RPublication.
     """
 
     class Meta:
         fields = platform.PublicationSerializer.Meta.fields
-        model = models.CRANPublication
+        model = models.RPublication
 
 
-class CRANDistributionSerializer(platform.DistributionSerializer):
+class RDistributionSerializer(platform.DistributionSerializer):
     """
-    A Serializer for CRANDistribution.
+    A Serializer for RDistribution.
     """
 
     publication = platform.DetailRelatedField(
@@ -89,4 +89,4 @@ class CRANDistributionSerializer(platform.DistributionSerializer):
 
     class Meta:
         fields = platform.DistributionSerializer.Meta.fields + ("publication",)
-        model = models.CRANDistribution
+        model = models.RDistribution

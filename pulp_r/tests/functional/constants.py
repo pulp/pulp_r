@@ -4,11 +4,11 @@ from urllib.parse import urljoin
 
 from pulp_smash.constants import PULP_FIXTURES_BASE_URL
 from pulp_smash.pulp3.constants import (
+    BASE_CONTENT_PATH,
     BASE_DISTRIBUTION_PATH,
     BASE_PUBLICATION_PATH,
     BASE_REMOTE_PATH,
     BASE_REPO_PATH,
-    BASE_CONTENT_PATH,
 )
 
 # FIXME: list any download policies supported by your plugin type here.
@@ -18,42 +18,42 @@ from pulp_smash.pulp3.constants import (
 DOWNLOAD_POLICIES = ["immediate"]
 
 # FIXME: replace 'unit' with your own content type names, and duplicate as necessary for each type
-CRAN_CONTENT_NAME = "cran.unit"
+R_CONTENT_NAME = "r.unit"
 
 # FIXME: replace 'unit' with your own content type names, and duplicate as necessary for each type
-CRAN_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, "cran/units/")
+R_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, "r/units/")
 
-CRAN_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "cran/cran/")
+R_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "r/r/")
 
-CRAN_REPO_PATH = urljoin(BASE_REPO_PATH, "cran/cran/")
+R_REPO_PATH = urljoin(BASE_REPO_PATH, "r/r/")
 
-CRAN_PUBLICATION_PATH = urljoin(BASE_PUBLICATION_PATH, "cran/cran/")
+R_PUBLICATION_PATH = urljoin(BASE_PUBLICATION_PATH, "r/r/")
 
-CRAN_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "cran/cran/")
+R_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "r/r/")
 
 # FIXME: replace this with your own fixture repository URL and metadata
-CRAN_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "cran/")
-"""The URL to a cran repository."""
+R_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "r/")
+"""The URL to a r repository."""
 
 # FIXME: replace this with the actual number of content units in your test fixture
-CRAN_FIXTURE_COUNT = 3
-"""The number of content units available at :data:`CRAN_FIXTURE_URL`."""
+R_FIXTURE_COUNT = 3
+"""The number of content units available at :data:`R_FIXTURE_URL`."""
 
-CRAN_FIXTURE_SUMMARY = {CRAN_CONTENT_NAME: CRAN_FIXTURE_COUNT}
-"""The desired content summary after syncing :data:`CRAN_FIXTURE_URL`."""
+R_FIXTURE_SUMMARY = {R_CONTENT_NAME: R_FIXTURE_COUNT}
+"""The desired content summary after syncing :data:`R_FIXTURE_URL`."""
 
 # FIXME: replace this with the location of one specific content unit of your choosing
-CRAN_URL = urljoin(CRAN_FIXTURE_URL, "")
-"""The URL to an cran file at :data:`CRAN_FIXTURE_URL`."""
+R_URL = urljoin(R_FIXTURE_URL, "")
+"""The URL to an r file at :data:`R_FIXTURE_URL`."""
 
 # FIXME: replace this with your own fixture repository URL and metadata
-CRAN_INVALID_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "cran-invalid/")
-"""The URL to an invalid cran repository."""
+R_INVALID_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "r-invalid/")
+"""The URL to an invalid r repository."""
 
 # FIXME: replace this with your own fixture repository URL and metadata
-CRAN_LARGE_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "cran_large/")
-"""The URL to a cran repository containing a large number of content units."""
+R_LARGE_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "r_large/")
+"""The URL to a r repository containing a large number of content units."""
 
 # FIXME: replace this with the actual number of content units in your test fixture
-CRAN_LARGE_FIXTURE_COUNT = 25
-"""The number of content units available at :data:`CRAN_LARGE_FIXTURE_URL`."""
+R_LARGE_FIXTURE_COUNT = 25
+"""The number of content units available at :data:`R_LARGE_FIXTURE_URL`."""

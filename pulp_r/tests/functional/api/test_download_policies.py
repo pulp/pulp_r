@@ -3,24 +3,27 @@
 import unittest
 
 from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary
+from pulp_smash.pulp3.utils import (
+    gen_repo,
+    get_added_content_summary,
+    get_content_summary,
+)
+from pulpcore.client.pulp_r import (
+    RemotesCranApi,
+    RepositoriesCranApi,
+    RepositorySyncURL,
+)
 
 from pulp_r.tests.functional.constants import (
-    CRAN_FIXTURE_SUMMARY,
     DOWNLOAD_POLICIES,
+    R_FIXTURE_SUMMARY,
 )
 from pulp_r.tests.functional.utils import (
-    gen_cran_client,
-    gen_cran_remote,
+    gen_r_client,
+    gen_r_remote,
     skip_if,
 )
 from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_r import (
-    RepositoriesCranApi,
-    RepositorySyncURL,
-    RemotesCranApi,
-)
 
 
 # Implement sync support before enabling this test.
@@ -36,7 +39,7 @@ class SyncDownloadPolicyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.client = gen_cran_client()
+        cls.client = gen_r_client()
         cls.DP_ON_DEMAND = "on_demand" in DOWNLOAD_POLICIES
         cls.DP_STREAMED = "streamed" in DOWNLOAD_POLICIES
 
@@ -74,7 +77,7 @@ class SyncDownloadPolicyTestCase(unittest.TestCase):
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
 
-        body = gen_cran_remote(**{"policy": download_policy})
+        body = gen_r_remote(**{"policy": download_policy})
         remote = remote_api.create(body)
         self.addCleanup(remote_api.delete, remote.pulp_href)
 
@@ -86,8 +89,8 @@ class SyncDownloadPolicyTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         self.assertIsNotNone(repo.latest_version_href)
-        self.assertDictEqual(get_content_summary(repo.to_dict()), CRAN_FIXTURE_SUMMARY)
-        self.assertDictEqual(get_added_content_summary(repo.to_dict()), CRAN_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_added_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)
 
         # Sync the repository again.
         latest_version_href = repo.latest_version_href
@@ -96,4 +99,4 @@ class SyncDownloadPolicyTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         self.assertEqual(latest_version_href, repo.latest_version_href)
-        self.assertDictEqual(get_content_summary(repo.to_dict()), CRAN_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)

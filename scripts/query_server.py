@@ -10,7 +10,7 @@ def create_remote(name, url, policy="immediate"):
         "url": url,
         "policy": policy,
     }
-    response = requests.post(f"{BASE_URL}/pulp/api/v3/remotes/cran/", json=remote_data)
+    response = requests.post(f"{BASE_URL}/pulp/api/v3/remotes/r/", json=remote_data)
     response.raise_for_status()
     return response.json()["pulp_href"]
 
@@ -19,7 +19,7 @@ def create_repository(name, remote_href):
         "name": name,
         "remote": remote_href,
     }
-    response = requests.post(f"{BASE_URL}/pulp/api/v3/repositories/cran/", json=repository_data)
+    response = requests.post(f"{BASE_URL}/pulp/api/v3/repositories/r/", json=repository_data)
     response.raise_for_status()
     return response.json()["pulp_href"]
 
@@ -36,7 +36,7 @@ def publish_repository(repository_href):
     publication_data = {
         "repository_version": f"{repository_href}versions/1/",
     }
-    response = requests.post(f"{BASE_URL}/pulp/api/v3/publications/cran/", json=publication_data)
+    response = requests.post(f"{BASE_URL}/pulp/api/v3/publications/r/", json=publication_data)
     response.raise_for_status()
     task_href = response.json()["task"]
     wait_for_task(task_href)
@@ -48,7 +48,7 @@ def create_distribution(name, base_path, publication_href):
         "base_path": base_path,
         "publication": publication_href,
     }
-    response = requests.post(f"{BASE_URL}/pulp/api/v3/distributions/cran/", json=distribution_data)
+    response = requests.post(f"{BASE_URL}/pulp/api/v3/distributions/r/", json=distribution_data)
     response.raise_for_status()
     return response.json()["pulp_href"]
 
@@ -62,11 +62,11 @@ def wait_for_task(task_href, interval=1):
         time.sleep(interval)
 
 def main():
-    remote_name = "cran-remote"
-    remote_url = "https://cran.r-project.org"
-    repository_name = "cran-repo"
-    distribution_name = "cran-dist"
-    distribution_base_path = "cran"
+    remote_name = "r-remote"
+    remote_url = "https://r.r-project.org"
+    repository_name = "r-repo"
+    distribution_name = "r-dist"
+    distribution_base_path = "r"
 
     remote_href = create_remote(remote_name, remote_url)
     print(f"Created remote: {remote_href}")
@@ -83,7 +83,7 @@ def main():
     distribution_href = create_distribution(distribution_name, distribution_base_path, publication_href)
     print(f"Created distribution: {distribution_href}")
 
-    print(f"CRAN packages are now available at: {BASE_URL}{distribution_href}packages/")
+    print(f"R packages are now available at: {BASE_URL}{distribution_href}packages/")
 
 if __name__ == "__main__":
     main()

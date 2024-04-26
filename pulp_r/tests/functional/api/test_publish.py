@@ -1,4 +1,4 @@
-"""Tests that publish cran plugin repositories."""
+"""Tests that publish r plugin repositories."""
 
 import unittest
 from random import choice
@@ -6,22 +6,21 @@ from random import choice
 from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, modify_repo
-
-from pulp_r.tests.functional.constants import CRAN_CONTENT_NAME
-from pulp_r.tests.functional.utils import (
-    gen_cran_client,
-    gen_cran_remote,
-)
-from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
 from pulpcore.client.pulp_r import (
+    CranCranPublication,
     PublicationsCranApi,
+    RemotesCranApi,
     RepositoriesCranApi,
     RepositorySyncURL,
-    RemotesCranApi,
-    CranCranPublication,
 )
 from pulpcore.client.pulp_r.exceptions import ApiException
+
+from pulp_r.tests.functional.constants import R_CONTENT_NAME
+from pulp_r.tests.functional.utils import (
+    gen_r_client,
+    gen_r_remote,
+)
+from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 # Implement sync and publish support before enabling this test.
@@ -49,12 +48,12 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
            repository versions to be published at same time.
         """
         cfg = config.get_config()
-        client = gen_cran_client()
+        client = gen_r_client()
         repo_api = RepositoriesCranApi(client)
         remote_api = RemotesCranApi(client)
         publications = PublicationsCranApi(client)
 
-        body = gen_cran_remote()
+        body = gen_r_remote()
         remote = remote_api.create(body)
         self.addCleanup(remote_api.delete, remote.pulp_href)
 
@@ -67,8 +66,8 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         # Step 1
         repo = repo_api.read(repo.pulp_href)
-        for cran_content in get_content(repo.to_dict())[CRAN_CONTENT_NAME]:
-            modify_repo(cfg, repo.to_dict(), add_units=[cran_content])
+        for r_content in get_content(repo.to_dict())[R_CONTENT_NAME]:
+            modify_repo(cfg, repo.to_dict(), add_units=[r_content])
         version_hrefs = tuple(ver["pulp_href"] for ver in get_versions(repo.to_dict()))
         non_latest = choice(version_hrefs[:-1])
 

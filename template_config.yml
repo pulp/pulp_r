@@ -33,11 +33,11 @@ latest_release_branch: null
 lint_requirements: true
 noissue_marker: '[noissue]'
 parallel_test_workers: 8
-plugin_app_label: cran
+plugin_app_label: r
 plugin_default_branch: main
 plugin_name: pulp_r
 plugins:
-- app_label: cran
+- app_label: r
   name: pulp_r
 post_job_template: null
 pre_job_template: null

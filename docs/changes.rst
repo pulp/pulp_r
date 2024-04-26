@@ -1,4 +1,4 @@
-.. _pulp_cran-changes:
+.. _pulp_r-changes:
 
 .. include:: ../CHANGES.rst
 

@@ -23,13 +23,13 @@ from rest_framework.response import Response
 from . import models, serializers, tasks
 
 
-class CRANPackageFilter(core.ContentFilter):
+class RPackageFilter(core.ContentFilter):
     """
-    FilterSet for CRANPackage.
+    FilterSet for RPackage.
     """
 
     class Meta:
-        model = models.CRANPackage
+        model = models.RPackage
         fields = [
             'name',
             'version',
@@ -37,15 +37,15 @@ class CRANPackageFilter(core.ContentFilter):
         ]
 
 
-class CRANPackageViewSet(core.ContentViewSet):
+class RPackageViewSet(core.ContentViewSet):
     """
-    A ViewSet for CRANPackage.
+    A ViewSet for RPackage.
     """
 
     endpoint_name = 'packages'
-    queryset = models.CRANPackage.objects.all()
-    serializer_class = serializers.CRANPackageSerializer
-    filterset_class = CRANPackageFilter
+    queryset = models.RPackage.objects.all()
+    serializer_class = serializers.RPackageSerializer
+    filterset_class = RPackageFilter
 
     @transaction.atomic
     def create(self, request):
@@ -69,28 +69,28 @@ class CRANPackageViewSet(core.ContentViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class CRANRemoteFilter(RemoteFilter):
+class RRemoteFilter(RemoteFilter):
     """
-    A FilterSet for CRANRemote.
+    A FilterSet for RRemote.
     """
 
     class Meta:
-        model = models.CRANRemote
+        model = models.RRemote
         fields = [
             'name',
             'url',
         ]
 
 
-class CRANRemoteViewSet(core.RemoteViewSet):
+class RRemoteViewSet(core.RemoteViewSet):
     """
-    A ViewSet for CRANRemote.
+    A ViewSet for RRemote.
     """
 
-    endpoint_name = 'cran'
-    queryset = models.CRANRemote.objects.all()
-    serializer_class = serializers.CRANRemoteSerializer
-    filterset_class = CRANRemoteFilter
+    endpoint_name = 'r'
+    queryset = models.RRemote.objects.all()
+    serializer_class = serializers.RRemoteSerializer
+    filterset_class = RRemoteFilter
     http_method_names = ['get', 'post', 'head', 'options']
 
     def create(self, request, *args, **kwargs):
@@ -104,14 +104,14 @@ class CRANRemoteViewSet(core.RemoteViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
-class CRANRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
+class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
     """
-    A ViewSet for CRANRepository.
+    A ViewSet for RRepository.
     """
 
-    endpoint_name = 'cran'
-    queryset = models.CRANRepository.objects.all()
-    serializer_class = serializers.CRANRepositorySerializer
+    endpoint_name = 'r'
+    queryset = models.RRepository.objects.all()
+    serializer_class = serializers.RRepositorySerializer
 
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
@@ -141,22 +141,22 @@ class CRANRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin)
         return core.OperationPostponedResponse(result, request)
 
 
-class CRANRepositoryVersionViewSet(core.RepositoryVersionViewSet):
+class RRepositoryVersionViewSet(core.RepositoryVersionViewSet):
     """
-    A ViewSet for a CRANRepositoryVersion represents a single repository version.
-    """
-
-    parent_viewset = CRANRepositoryViewSet
-
-
-class CRANPublicationViewSet(core.PublicationViewSet):
-    """
-    A ViewSet for CRANPublication.
+    A ViewSet for a RRepositoryVersion represents a single repository version.
     """
 
-    endpoint_name = 'cran'
-    queryset = models.CRANPublication.objects.exclude(complete=False)
-    serializer_class = serializers.CRANPublicationSerializer
+    parent_viewset = RRepositoryViewSet
+
+
+class RPublicationViewSet(core.PublicationViewSet):
+    """
+    A ViewSet for RPublication.
+    """
+
+    endpoint_name = 'r'
+    queryset = models.RPublication.objects.exclude(complete=False)
+    serializer_class = serializers.RPublicationSerializer
 
     @extend_schema(
         description="Trigger an asynchronous task to publish content",
@@ -178,11 +178,11 @@ class CRANPublicationViewSet(core.PublicationViewSet):
         return core.OperationPostponedResponse(result, request)
 
 
-class CRANDistributionViewSet(core.DistributionViewSet):
+class RDistributionViewSet(core.DistributionViewSet):
     """
-    A ViewSet for CRANDistribution.
+    A ViewSet for RDistribution.
     """
 
-    endpoint_name = 'cran'
-    queryset = models.CRANDistribution.objects.all()
-    serializer_class = serializers.CRANDistributionSerializer
+    endpoint_name = 'r'
+    queryset = models.RDistribution.objects.all()
+    serializer_class = serializers.RDistributionSerializer

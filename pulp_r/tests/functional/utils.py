@@ -1,10 +1,10 @@
-"""Utilities for tests for the cran plugin."""
+"""Utilities for tests for the r plugin."""
 
 from functools import partial
-import requests
-from unittest import SkipTest
 from tempfile import NamedTemporaryFile
+from unittest import SkipTest
 
+import requests
 from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.utils import (
     gen_remote,
@@ -14,24 +14,24 @@ from pulp_smash.pulp3.utils import (
     require_pulp_plugins,
     sync,
 )
-
-from pulp_r.tests.functional.constants import (
-    CRAN_CONTENT_NAME,
-    CRAN_CONTENT_PATH,
-    CRAN_FIXTURE_URL,
-    CRAN_PUBLICATION_PATH,
-    CRAN_REMOTE_PATH,
-    CRAN_REPO_PATH,
-    CRAN_URL,
-)
-
+from pulpcore.client.pulp_r import ApiClient as CranApiClient
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
+)
+from pulpcore.client.pulpcore import (
     ArtifactsApi,
     TasksApi,
 )
-from pulpcore.client.pulp_r import ApiClient as CranApiClient
 
+from pulp_r.tests.functional.constants import (
+    R_CONTENT_NAME,
+    R_CONTENT_PATH,
+    R_FIXTURE_URL,
+    R_PUBLICATION_PATH,
+    R_REMOTE_PATH,
+    R_REPO_PATH,
+    R_URL,
+)
 
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
@@ -40,25 +40,25 @@ configuration = cfg.get_bindings_config()
 def set_up_module():
     """Skip tests Pulp 3 isn't under test or if pulp_r isn't installed."""
     require_pulp_3(SkipTest)
-    require_pulp_plugins({"cran"}, SkipTest)
+    require_pulp_plugins({"r"}, SkipTest)
 
 
-def gen_cran_client():
-    """Return an OBJECT for cran client."""
+def gen_r_client():
+    """Return an OBJECT for r client."""
     return CranApiClient(configuration)
 
 
-def gen_cran_remote(url=CRAN_FIXTURE_URL, **kwargs):
-    """Return a semi-random dict for use in creating a cran Remote.
+def gen_r_remote(url=R_FIXTURE_URL, **kwargs):
+    """Return a semi-random dict for use in creating a r Remote.
 
     :param url: The URL of an external content source.
     """
-    # FIXME: Add any fields specific to a cran remote here
+    # FIXME: Add any fields specific to a r remote here
     return gen_remote(url, **kwargs)
 
 
-def get_cran_content_paths(repo, version_href=None):
-    """Return the relative path of content units present in a cran repository.
+def get_r_content_paths(repo, version_href=None):
+    """Return the relative path of content units present in a r repository.
 
     :param repo: A dict of information about the repository.
     :param version_href: The repository version to read.
@@ -69,14 +69,14 @@ def get_cran_content_paths(repo, version_href=None):
     # It's just an example -- this needs to be replaced with an implementation that works
     # for repositories of this content type.
     return {
-        CRAN_CONTENT_NAME: [
+        R_CONTENT_NAME: [
             (content_unit["relative_path"], content_unit["relative_path"])
-            for content_unit in get_content(repo, version_href)[CRAN_CONTENT_NAME]
+            for content_unit in get_content(repo, version_href)[R_CONTENT_NAME]
         ],
     }
 
 
-def gen_cran_content_attrs(artifact):
+def gen_r_content_attrs(artifact):
     """Generate a dict with content unit attributes.
 
     :param artifact: A dict of info about the artifact.
@@ -86,27 +86,27 @@ def gen_cran_content_attrs(artifact):
     return {"_artifact": artifact["pulp_href"]}
 
 
-def populate_pulp(cfg, url=CRAN_FIXTURE_URL):
-    """Add cran contents to Pulp.
+def populate_pulp(cfg, url=R_FIXTURE_URL):
+    """Add r contents to Pulp.
 
     :param pulp_smash.config.PulpSmashConfig: Information about a Pulp application.
-    :param url: The cran repository URL. Defaults to
-        :data:`pulp_smash.constants.CRAN_FIXTURE_URL`
-    :returns: A list of dicts, where each dict describes one cran content in Pulp.
+    :param url: The r repository URL. Defaults to
+        :data:`pulp_smash.constants.R_FIXTURE_URL`
+    :returns: A list of dicts, where each dict describes one r content in Pulp.
     """
     client = api.Client(cfg, api.json_handler)
     remote = {}
     repo = {}
     try:
-        remote.update(client.post(CRAN_REMOTE_PATH, gen_cran_remote(url)))
-        repo.update(client.post(CRAN_REPO_PATH, gen_repo()))
+        remote.update(client.post(R_REMOTE_PATH, gen_r_remote(url)))
+        repo.update(client.post(R_REPO_PATH, gen_repo()))
         sync(cfg, remote, repo)
     finally:
         if remote:
             client.delete(remote["pulp_href"])
         if repo:
             client.delete(repo["pulp_href"])
-    return client.get(CRAN_CONTENT_PATH)["results"]
+    return client.get(R_CONTENT_PATH)["results"]
 
 
 def publish(cfg, repo, version_href=None):
@@ -124,7 +124,7 @@ def publish(cfg, repo, version_href=None):
         body = {"repository": repo["pulp_href"]}
 
     client = api.Client(cfg, api.json_handler)
-    call_report = client.post(CRAN_PUBLICATION_PATH, body)
+    call_report = client.post(R_PUBLICATION_PATH, body)
     tasks = tuple(api.poll_spawned_tasks(cfg, call_report))
     return client.get(tasks[-1]["created_resources"][0])
 
@@ -140,7 +140,7 @@ core_client = CoreApiClient(configuration)
 tasks = TasksApi(core_client)
 
 
-def gen_artifact(url=CRAN_URL):
+def gen_artifact(url=R_URL):
     """Creates an artifact."""
     response = requests.get(url)
     with NamedTemporaryFile() as temp_file:

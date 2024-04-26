@@ -2,18 +2,17 @@
 
 import unittest
 
-from pulp_smash.pulp3.utils import delete_orphans
 from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.utils import delete_orphans
+from pulpcore.client.pulp_r import ContentCranApi
 
 from pulp_r.tests.functional.utils import (
     gen_artifact,
-    gen_cran_client,
-    gen_cran_content_attrs,
+    gen_r_client,
+    gen_r_content_attrs,
     skip_if,
 )
 from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulp_r import ContentCranApi
 
 
 # Read the instructions provided below for the steps needed to enable this test (see: FIXME's).
@@ -33,7 +32,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """Create class-wide variable."""
         delete_orphans()
         cls.content_unit = {}
-        cls.cran_content_api = ContentCranApi(gen_cran_client())
+        cls.r_content_api = ContentCranApi(gen_r_client())
         cls.artifact = gen_artifact()
 
     @classmethod
@@ -43,10 +42,10 @@ class ContentUnitTestCase(unittest.TestCase):
 
     def test_01_create_content_unit(self):
         """Create content unit."""
-        attrs = gen_cran_content_attrs(self.artifact)
-        response = self.cran_content_api.create(**attrs)
+        attrs = gen_r_content_attrs(self.artifact)
+        response = self.r_content_api.create(**attrs)
         created_resources = monitor_task(response.task).created_resources
-        content_unit = self.cran_content_api.read(created_resources[0])
+        content_unit = self.r_content_api.read(created_resources[0])
         self.content_unit.update(content_unit.to_dict())
         for key, val in attrs.items():
             with self.subTest(key=key):
@@ -55,7 +54,7 @@ class ContentUnitTestCase(unittest.TestCase):
     @skip_if(bool, "content_unit", False)
     def test_02_read_content_unit(self):
         """Read a content unit by its href."""
-        content_unit = self.cran_content_api.read(self.content_unit["pulp_href"]).to_dict()
+        content_unit = self.r_content_api.read(self.content_unit["pulp_href"]).to_dict()
         for key, val in self.content_unit.items():
             with self.subTest(key=key):
                 self.assertEqual(content_unit[key], val)
@@ -65,7 +64,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """Read a content unit by its relative_path."""
         # FIXME: "relative_path" is an attribute specific to the File plugin. It is only an
         # example. You should replace this with some other field specific to your content type.
-        page = self.cran_content_api.list(relative_path=self.content_unit["relative_path"])
+        page = self.r_content_api.list(relative_path=self.content_unit["relative_path"])
         self.assertEqual(len(page.results), 1)
         for key, val in self.content_unit.items():
             with self.subTest(key=key):
@@ -77,9 +76,9 @@ class ContentUnitTestCase(unittest.TestCase):
 
         This HTTP method is not supported and a HTTP exception is expected.
         """
-        attrs = gen_cran_content_attrs(self.artifact)
+        attrs = gen_r_content_attrs(self.artifact)
         with self.assertRaises(AttributeError) as exc:
-            self.cran_content_api.partial_update(self.content_unit["pulp_href"], attrs)
+            self.r_content_api.partial_update(self.content_unit["pulp_href"], attrs)
         msg = "object has no attribute 'partial_update'"
         self.assertIn(msg, exc.exception.args[0])
 
@@ -89,9 +88,9 @@ class ContentUnitTestCase(unittest.TestCase):
 
         This HTTP method is not supported and a HTTP exception is expected.
         """
-        attrs = gen_cran_content_attrs(self.artifact)
+        attrs = gen_r_content_attrs(self.artifact)
         with self.assertRaises(AttributeError) as exc:
-            self.cran_content_api.update(self.content_unit["pulp_href"], attrs)
+            self.r_content_api.update(self.content_unit["pulp_href"], attrs)
         msg = "object has no attribute 'update'"
         self.assertIn(msg, exc.exception.args[0])
 
@@ -102,6 +101,6 @@ class ContentUnitTestCase(unittest.TestCase):
         This HTTP method is not supported and a HTTP exception is expected.
         """
         with self.assertRaises(AttributeError) as exc:
-            self.cran_content_api.delete(self.content_unit["pulp_href"])
+            self.r_content_api.delete(self.content_unit["pulp_href"])
         msg = "object has no attribute 'delete'"
         self.assertIn(msg, exc.exception.args[0])

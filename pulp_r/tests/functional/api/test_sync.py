@@ -1,41 +1,44 @@
-"""Tests that sync cran plugin repositories."""
+"""Tests that sync r plugin repositories."""
 
 import unittest
 
 from pulp_smash import config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
-from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary
-
-from pulp_r.tests.functional.constants import (
-    CRAN_FIXTURE_SUMMARY,
-    CRAN_INVALID_FIXTURE_URL,
+from pulp_smash.pulp3.bindings import PulpTaskError, monitor_task
+from pulp_smash.pulp3.utils import (
+    gen_repo,
+    get_added_content_summary,
+    get_content_summary,
 )
-from pulp_r.tests.functional.utils import (
-    gen_cran_client,
-    gen_cran_remote,
-)
-from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
 from pulpcore.client.pulp_r import (
+    RemotesCranApi,
     RepositoriesCranApi,
     RepositorySyncURL,
-    RemotesCranApi,
 )
+
+from pulp_r.tests.functional.constants import (
+    R_FIXTURE_SUMMARY,
+    R_INVALID_FIXTURE_URL,
+)
+from pulp_r.tests.functional.utils import (
+    gen_r_client,
+    gen_r_remote,
+)
+from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 # Implement sync support before enabling this test.
 @unittest.skip("FIXME: plugin writer action required")
 class BasicSyncTestCase(unittest.TestCase):
-    """Sync a repository with the cran plugin."""
+    """Sync a repository with the r plugin."""
 
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
         cls.cfg = config.get_config()
-        cls.client = gen_cran_client()
+        cls.client = gen_r_client()
 
     def test_sync(self):
-        """Sync repositories with the cran plugin.
+        """Sync repositories with the r plugin.
 
         In order to sync a repository a remote has to be associated within
         this repository. When a repository is created this version field is set
@@ -60,7 +63,7 @@ class BasicSyncTestCase(unittest.TestCase):
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
 
-        body = gen_cran_remote()
+        body = gen_r_remote()
         remote = remote_api.create(body)
         self.addCleanup(remote_api.delete, remote.pulp_href)
 
@@ -72,8 +75,8 @@ class BasicSyncTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         self.assertIsNotNone(repo.latest_version_href)
-        self.assertDictEqual(get_content_summary(repo.to_dict()), CRAN_FIXTURE_SUMMARY)
-        self.assertDictEqual(get_added_content_summary(repo.to_dict()), CRAN_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_added_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)
 
         # Sync the repository again.
         latest_version_href = repo.latest_version_href
@@ -83,7 +86,7 @@ class BasicSyncTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         self.assertEqual(latest_version_href, repo.latest_version_href)
-        self.assertDictEqual(get_content_summary(repo.to_dict()), CRAN_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)
 
 
 # Implement sync support before enabling this test.
@@ -94,7 +97,7 @@ class SyncInvalidTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.client = gen_cran_client()
+        cls.client = gen_r_client()
 
     def test_invalid_url(self):
         """Sync a repository using a remote url that does not exist.
@@ -108,14 +111,14 @@ class SyncInvalidTestCase(unittest.TestCase):
 
     # Provide an invalid repository and specify keywords in the anticipated error message
     @unittest.skip("FIXME: Plugin writer action required.")
-    def test_invalid_cran_content(self):
+    def test_invalid_r_content(self):
         """Sync a repository using an invalid plugin_content repository.
 
         Assert that an exception is raised, and that error message has
         keywords related to the reason of the failure. See :meth:`do_test`.
         """
         with self.assertRaises(PulpTaskError) as cm:
-            task = self.do_test(CRAN_INVALID_FIXTURE_URL)
+            task = self.do_test(R_INVALID_FIXTURE_URL)
         task = cm.exception.task.to_dict()
         for key in ("mismached", "empty"):
             self.assertIn(key, task["error"]["description"])
@@ -128,7 +131,7 @@ class SyncInvalidTestCase(unittest.TestCase):
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
 
-        body = gen_cran_remote(url=url)
+        body = gen_r_remote(url=url)
         remote = remote_api.create(body)
         self.addCleanup(remote_api.delete, remote.pulp_href)
 
