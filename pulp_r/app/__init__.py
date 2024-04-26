@@ -1,10 +1,10 @@
 from pulpcore.plugin import PulpPluginAppConfig
 
 
-class PulpCranPluginAppConfig(PulpPluginAppConfig):
-    """Entry point for the cran plugin."""
+class PulpRPluginAppConfig(PulpPluginAppConfig):
+    """Entry point for the pulp_r plugin."""
 
     name = "pulp_r.app"
-    label = "cran"
+    label = "r"
     version = "0.1.0a1.dev"
-    python_package_name = "pulp_r"
+    python_package_name = "pulp-r"

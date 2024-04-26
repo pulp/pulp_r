@@ -1,8 +1,10 @@
 #!/bin/bash
 
+cp ./compose.env ../oci_env/compose.env
 cd ../oci_env || exit
 source venv/bin/activate
 pip3 install -e client
+pip install pulp-smash
 
 
 
@@ -11,11 +13,16 @@ oci-env compose down --volumes
 oci-env compose build
 oci-env compose up -d
 
-pip install pulp-cli
-BASE_ADDR="http://localhost:5001"
-pulp config create --base-url $BASE_ADDR --no-verify-ssl --format json --verbose --username admin --password password --overwrite
+while true; do
+    result=$(curl -s http://localhost:5001/pulp/api/v3/status/ | jq -r .database_connection.connected)
+    echo "Server Response - database connected: $result"
+    if [ "$result" = "true" ]; then
+        break
+    fi
+    sleep 1
+done
 
-
+oci-env test -ip pulp_python functional
 
 # By default the API will be served from http://localhost:5001/pulp/api/v3/. You can login with admin/password by default. E.g.:
 # curl -u admin:password http://localhost:5001/pulp/api/v3/status/ | jq '.'
