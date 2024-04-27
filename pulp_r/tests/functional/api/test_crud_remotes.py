@@ -5,7 +5,7 @@ from random import choice
 
 from pulp_smash import utils
 from pulp_smash.pulp3.bindings import monitor_task
-from pulpcore.client.pulp_r import RemotesCranApi
+from pulpcore.client.pulp_r import RemotesRApi
 from pulpcore.client.pulp_r.exceptions import ApiException
 
 from pulp_r.tests.functional.constants import DOWNLOAD_POLICIES
@@ -23,7 +23,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.remote_api = RemotesCranApi(gen_r_client())
+        cls.remote_api = RemotesRApi(gen_r_client())
 
     def test_01_create_remote(self):
         """Create a remote."""
@@ -113,7 +113,7 @@ class CreateRemoteNoURLTestCase(unittest.TestCase):
         body = gen_r_remote()
         del body["url"]
         with self.assertRaises(ApiException):
-            RemotesCranApi(gen_r_client()).create(body)
+            RemotesRApi(gen_r_client()).create(body)
 
 
 class RemoteDownloadPolicyTestCase(unittest.TestCase):
@@ -145,7 +145,7 @@ class RemoteDownloadPolicyTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.remote_api = RemotesCranApi(gen_r_client())
+        cls.remote_api = RemotesRApi(gen_r_client())
         cls.remote = {}
         cls.policies = DOWNLOAD_POLICIES
         cls.body = _gen_verbose_remote()

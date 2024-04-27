@@ -1,21 +1,21 @@
 import unittest
+
 from django.test import TestCase
-
-from pulp_r.app.serializers import CranContentSerializer
-from pulp_r.app.models import CranContent
-
 from pulpcore.plugin.models import Artifact
 
+from pulp_r.app.models import RContent
+from pulp_r.app.serializers import RContentSerializer
 
-# Fill data with sufficient information to create CranContent
-# Provide sufficient parameters to create the CranContent object
+
+# Fill data with sufficient information to create RContent
+# Provide sufficient parameters to create the RContent object
 # Depending on the base class of the serializer, provide either "_artifact" or "_artifacts"
 @unittest.skip("FIXME: plugin writer action required")
-class TestCranContentSerializer(TestCase):
-    """Test CranContentSerializer."""
+class TestRContentSerializer(TestCase):
+    """Test RContentSerializer."""
 
     def setUp(self):
-        """Set up the CranContentSerializer tests."""
+        """Set up the RContentSerializer tests."""
         self.artifact = Artifact.objects.create(
             md5="ec0df26316b1deb465d2d18af7b600f5",
             sha1="cf6121b0425c2f2e3a2fcfe6f402d59730eb5661",
@@ -27,14 +27,14 @@ class TestCranContentSerializer(TestCase):
         )
 
     def test_valid_data(self):
-        """Test that the CranContentSerializer accepts valid data."""
+        """Test that the RContentSerializer accepts valid data."""
         data = {"_artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk)}
-        serializer = CranContentSerializer(data=data)
+        serializer = RContentSerializer(data=data)
         self.assertTrue(serializer.is_valid())
 
     def test_duplicate_data(self):
-        """Test that the CranContentSerializer does not accept data."""
-        CranContent.objects.create(artifact=self.artifact)
+        """Test that the RContentSerializer does not accept data."""
+        RContent.objects.create(artifact=self.artifact)
         data = {"_artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk)}
-        serializer = CranContentSerializer(data=data)
+        serializer = RContentSerializer(data=data)
         self.assertFalse(serializer.is_valid())

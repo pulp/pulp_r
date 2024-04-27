@@ -10,8 +10,8 @@ from pulp_smash.pulp3.utils import (
     get_content_summary,
 )
 from pulpcore.client.pulp_r import (
-    RemotesCranApi,
-    RepositoriesCranApi,
+    RemotesRApi,
+    RepositoriesRApi,
     RepositorySyncURL,
 )
 
@@ -57,8 +57,8 @@ class BasicSyncTestCase(unittest.TestCase):
         8. Assert that the same number of are present and that no units were
            added.
         """
-        repo_api = RepositoriesCranApi(self.client)
-        remote_api = RemotesCranApi(self.client)
+        repo_api = RepositoriesRApi(self.client)
+        remote_api = RemotesRApi(self.client)
 
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
@@ -125,8 +125,8 @@ class SyncInvalidTestCase(unittest.TestCase):
 
     def do_test(self, url):
         """Sync a repository given ``url`` on the remote."""
-        repo_api = RepositoriesCranApi(self.client)
-        remote_api = RemotesCranApi(self.client)
+        repo_api = RepositoriesRApi(self.client)
+        remote_api = RemotesRApi(self.client)
 
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)

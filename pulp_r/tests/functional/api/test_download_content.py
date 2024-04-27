@@ -9,12 +9,12 @@ from pulp_smash import config, utils
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import download_content_unit, gen_distribution, gen_repo
 from pulpcore.client.pulp_r import (
-    CranCranPublication,
-    DistributionsCranApi,
-    PublicationsCranApi,
-    RemotesCranApi,
-    RepositoriesCranApi,
+    DistributionsRApi,
+    PublicationsRApi,
+    RemotesRApi,
+    RepositoriesRApi,
     RepositorySyncURL,
+    RRPublication,
 )
 
 from pulp_r.tests.functional.constants import R_FIXTURE_URL
@@ -60,10 +60,10 @@ class DownloadContentTestCase(unittest.TestCase):
         """
         cfg = config.get_config()
         client = gen_r_client()
-        repo_api = RepositoriesCranApi(client)
-        remote_api = RemotesCranApi(client)
-        publications = PublicationsCranApi(client)
-        distributions = DistributionsCranApi(client)
+        repo_api = RepositoriesRApi(client)
+        remote_api = RemotesRApi(client)
+        publications = PublicationsRApi(client)
+        distributions = DistributionsRApi(client)
 
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
@@ -79,7 +79,7 @@ class DownloadContentTestCase(unittest.TestCase):
         repo = repo_api.read(repo.pulp_href)
 
         # Create a publication.
-        publish_data = CranCranPublication(repository=repo.pulp_href)
+        publish_data = RRPublication(repository=repo.pulp_href)
         publish_response = publications.create(publish_data)
         created_resources = monitor_task(publish_response.task).created_resources
         publication_href = created_resources[0]

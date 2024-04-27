@@ -14,7 +14,7 @@ from pulp_smash.pulp3.utils import (
     require_pulp_plugins,
     sync,
 )
-from pulpcore.client.pulp_r import ApiClient as CranApiClient
+from pulpcore.client.pulp_r import ApiClient as RApiClient
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
 )
@@ -45,7 +45,7 @@ def set_up_module():
 
 def gen_r_client():
     """Return an OBJECT for r client."""
-    return CranApiClient(configuration)
+    return RApiClient(configuration)
 
 
 def gen_r_remote(url=R_FIXTURE_URL, **kwargs):

@@ -1,4 +1,4 @@
-"""Constants for Pulp Cran plugin tests."""
+"""Constants for Pulp R plugin tests."""
 
 from urllib.parse import urljoin
 

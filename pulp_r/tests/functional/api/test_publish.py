@@ -7,11 +7,11 @@ from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, modify_repo
 from pulpcore.client.pulp_r import (
-    CranCranPublication,
-    PublicationsCranApi,
-    RemotesCranApi,
-    RepositoriesCranApi,
+    PublicationsRApi,
+    RemotesRApi,
+    RepositoriesRApi,
     RepositorySyncURL,
+    RRPublication,
 )
 from pulpcore.client.pulp_r.exceptions import ApiException
 
@@ -49,9 +49,9 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         """
         cfg = config.get_config()
         client = gen_r_client()
-        repo_api = RepositoriesCranApi(client)
-        remote_api = RemotesCranApi(client)
-        publications = PublicationsCranApi(client)
+        repo_api = RepositoriesRApi(client)
+        remote_api = RemotesRApi(client)
+        publications = PublicationsRApi(client)
 
         body = gen_r_remote()
         remote = remote_api.create(body)
@@ -72,7 +72,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         non_latest = choice(version_hrefs[:-1])
 
         # Step 2
-        publish_data = CranCranPublication(repository=repo.pulp_href)
+        publish_data = RRPublication(repository=repo.pulp_href)
         publish_response = publications.create(publish_data)
         created_resources = monitor_task(publish_response.task).created_resources
         publication_href = created_resources[0]

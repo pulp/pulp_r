@@ -2,7 +2,7 @@ import time
 
 import requests
 
-BASE_URL = "http://localhost:24817"
+BASE_URL = "http://localhost:5001"
 
 def create_remote(name, url, policy="immediate"):
     remote_data = {

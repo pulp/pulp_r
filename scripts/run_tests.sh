@@ -19,13 +19,15 @@ while true; do
     if [ "$result" = "true" ]; then
         break
     fi
-    sleep 1
+    sleep 5
 done
 
-oci-env test -ip pulp_python functional
+oci-env test -ip pulp_r functional
 
 # By default the API will be served from http://localhost:5001/pulp/api/v3/. You can login with admin/password by default. E.g.:
 # curl -u admin:password http://localhost:5001/pulp/api/v3/status/ | jq '.'
+
+# python scripts/query_server.py
 
 # oci-env generate-client -i
 # oci-env generate-client -i pulpcore

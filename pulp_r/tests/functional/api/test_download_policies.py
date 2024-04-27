@@ -9,8 +9,8 @@ from pulp_smash.pulp3.utils import (
     get_content_summary,
 )
 from pulpcore.client.pulp_r import (
-    RemotesCranApi,
-    RepositoriesCranApi,
+    RemotesRApi,
+    RepositoriesRApi,
     RepositorySyncURL,
 )
 
@@ -71,8 +71,8 @@ class SyncDownloadPolicyTestCase(unittest.TestCase):
            second sync no extra units should be shown, since the same remote
            was synced again.
         """
-        repo_api = RepositoriesCranApi(self.client)
-        remote_api = RemotesCranApi(self.client)
+        repo_api = RepositoriesRApi(self.client)
+        remote_api = RemotesRApi(self.client)
 
         repo = repo_api.create(gen_repo())
         self.addCleanup(repo_api.delete, repo.pulp_href)
