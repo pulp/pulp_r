@@ -4,7 +4,7 @@ import unittest
 
 from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import delete_orphans
-from pulpcore.client.pulp_r import ContentRApi
+from pulpcore.client.pulp_r import ContentPackagesApi
 
 from pulp_r.tests.functional.utils import (
     gen_artifact,
@@ -32,7 +32,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """Create class-wide variable."""
         delete_orphans()
         cls.content_unit = {}
-        cls.r_content_api = ContentRApi(gen_r_client())
+        cls.r_content_api = ContentPackagesApi(gen_r_client())
         cls.artifact = gen_artifact()
 
     @classmethod
