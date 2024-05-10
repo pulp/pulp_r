@@ -126,7 +126,20 @@ class RRemoteViewSet(core.RemoteViewSet):
         Delete a remote.
         """
         instance = self.get_object()
+        
+        # TODO: Perform any necessary checks or cleanup before deleting the remote
+        # Check if the remote is associated with any repositories and handle the deletion accordingly
+        
+        repositories = instance.repository_set.all()
+        if repositories.exists():
+            # Handle the case when the remote is associated with repositories
+            # You can choose to raise an error, perform cleanup, or take other actions
+            raise serializers.ValidationError(
+                "Cannot delete the remote as it is associated with repositories."
+            )
+        
         self.perform_destroy(instance)
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
