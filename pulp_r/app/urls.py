@@ -11,5 +11,5 @@ router.register(r'publications', viewsets.RPublicationViewSet)
 router.register(r'distributions', viewsets.RDistributionViewSet)
 
 urlpatterns = [
-    path('pulp/api/v3/', include(router.urls)),
+    path('pulp/api/v3/r/', include((router.urls, 'r'), namespace='r')),
 ]
