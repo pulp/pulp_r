@@ -1,68 +1,68 @@
-# pulp-r
+# Pulp R Content Plugin
 
-A Pulp plugin to support hosting your own r.
+Welcome to the Pulp R Content Plugin repository! This plugin extends the functionality of the Pulp platform to support managing and distributing R packages.
 
-## Installation
+## Getting Started
 
-Create virtual environment and run `pip install -r requirements.txt`
+To get started with the Pulp R Content Plugin, follow these steps:
 
-Create your DB_ENCRYPTION_KEY fir pulp
+1. Clone the repository:
+   ```
+   git clone git@github.com:pulp/pulp_r.git
+   ```
 
-```bash
-mkdir -p /etc/pulp/certs
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" | sudo tee /etc/pulp/certs/database_fields.symmetric.key > /dev/null
-sudo chmod 600 /etc/pulp/certs/database_fields.symmetric.key
+2. Change into the project directory:
+   ```
+   cd pulp_r
+   ```
+
+3. Bootstrap the server by executing the `bootstrap_server.sh` script:
+   ```
+   ./oci_env/bootstrap_server.sh
+   ```
+   This script will set up the necessary environment and bring up the Pulp server.
+
+### Compose Configuration
+
+The `compose.env` file in the root directory contains the configuration for the Pulp server. Here's a brief explanation of the settings:
+
 ```
-Figure out the user/group you are running the django-admin command as.  This is the user that will own the key file.
-
-```bash
-ps aux | grep manage.py 
+COMPOSE_PROFILE=pulp_container_base
 ```
+This setting specifies the profiles to use for the Pulp server. In this case, we're using the `pulp_container_base` profile.
 
-Change the ownership of the encryption key file to the user running the Django application
-    
-```bash
-sudo chown <user>:<group> /etc/pulp/certs/database_fields.symmetric.key
 ```
-
-Verify that the user running the Django application has read access to the encryption key file:
-    
-```bash
-sudo chmod 400 /etc/pulp/certs/database_fields.symmetric.key
+DEV_SOURCE_PATH=pulpcore:pulp_r
 ```
-Create temp directory for the plugin
+The `DEV_SOURCE_PATH` setting is a colon-separated list of Python dependencies to include from the source.
 
-```bash
-mkdir -p /var/lib/pulp/tmp
+
 ```
-
-
-Run postgres container
-
-```bash
-docker-compose up -d
+DJANGO_SUPERUSER_USERNAME=admin
+DJANGO_SUPERUSER_PASSWORD=password
 ```
+These settings define the credentials for the Django admin user that gets created during startup.
 
-Create Migrations
-
-```bash
-django-admin makemigrations
 ```
-
-Migrate
-
-```bash
-django-admin migrate
+API_HOST=localhost
+API_PORT=5001
+API_PROTOCOL=http
+DOCS_PORT=12345
 ```
+These settings configure the host, port, and protocol used for the Pulp content origin API.
 
-Run Server
-    
-```bash
-pulpcore-api
+### Running Tests
+
+To run tests for the Pulp R Content Plugin, use the `run_tests.sh` script located in the `oci_env` directory:
+
+```
+./oci_env/run_tests.sh
 ```
 
-Client
-```bash
-python scripts/query_server.py 
-```
+This script will execute the test suite and provide you with the test results.
 
+## Contributing
+
+We welcome contributions to the Pulp R Content Plugin! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request on the GitHub repository.
+
+Happy packaging with Pulp R!
