@@ -91,7 +91,7 @@ class RRemoteViewSet(core.RemoteViewSet):
     queryset = models.RRemote.objects.all()
     serializer_class = serializers.RRemoteSerializer
     filterset_class = RRemoteFilter
-    http_method_names = ['get', 'post', 'head', 'options']
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     def create(self, request, *args, **kwargs):
         """
@@ -102,6 +102,32 @@ class RRemoteViewSet(core.RemoteViewSet):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update a remote.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Partially update a remote.
+        """
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a remote.
+        """
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):

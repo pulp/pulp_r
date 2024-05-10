@@ -83,7 +83,7 @@ class RDistributionSerializer(platform.DistributionSerializer):
         required=False,
         help_text=_("Publication to be served"),
         view_name_pattern=r"publications(-.*/.*)?-detail",
-        queryset=models.Publication.objects.exclude(complete=False),
+        queryset=models.RPublication.objects.exclude(complete=False),
         allow_null=True,
     )
 
