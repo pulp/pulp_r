@@ -48,6 +48,7 @@ API_HOST=localhost
 API_PORT=5001
 API_PROTOCOL=http
 DOCS_PORT=12345
+
 ```
 These settings configure the host, port, and protocol used for the Pulp content origin API.
 
