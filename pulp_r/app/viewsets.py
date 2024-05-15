@@ -142,6 +142,18 @@ class RRemoteViewSet(core.RemoteViewSet):
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def perform_update(self, serializer):
+        """
+        Perform the update on the instance.
+        """
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """
+        Perform the deletion of the instance.
+        """
+        instance.delete()
+
 
 class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
     """

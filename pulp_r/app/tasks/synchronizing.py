@@ -143,3 +143,29 @@ class RFirstStage(Stage):
                 else:
                     dependencies.append({'package': dep.strip()})
         return dependencies
+
+
+def create_remote(data):
+    """
+    Create a new remote.
+    """
+    remote = RRemote.objects.create(**data)
+    return remote
+
+
+def update_remote(instance, data):
+    """
+    Update an existing remote.
+    """
+    for attr, value in data.items():
+        setattr(instance, attr, value)
+    instance.save()
+    return instance
+
+
+def delete_remote(instance):
+    """
+    Delete an existing remote.
+    """
+    instance.delete()
+    return instance
