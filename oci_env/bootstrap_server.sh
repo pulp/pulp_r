@@ -40,7 +40,7 @@ pip3 install -e client
 pip install pulp-smash
 
 # Tear down existing services and volumes
-oci-env compose down --volumes
+oci-env compose down
 
 # Build images and start services
 oci-env compose build
@@ -58,9 +58,9 @@ oci-env compose up
 #      -H "Content-Type: application/json" \
 #      -d '{
 #            "name": "CRAN Remote",
-#            "url": "https://cran.r-project.org",
+#            "url": "https://cran.r-project.org/src/contrib/PACKAGES.gz",
 #            "policy": "on_demand"
-#          }' | jq '.'
+#          }'
 
 
 # Create new repository

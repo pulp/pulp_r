@@ -1,8 +1,8 @@
 import json
 import logging
-import tarfile
+import gzip
+import shutil
 from gettext import gettext as _
-
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
@@ -12,6 +12,7 @@ from pulpcore.plugin.stages import (
 )
 from asgiref.sync import sync_to_async
 import asyncio
+import os
 
 from pulp_r.app.models import RPackage, RRemote
 
@@ -84,10 +85,11 @@ class RFirstStage(Stage):
             packages_path (str): Path to the packages file
         """
         with ProgressReport(message='Parsing R metadata', code='parsing.metadata') as pb:
-            pb.total = len(list(self.parse_packages_file(packages_path)))
+            package_entries = list(self.parse_packages_file(packages_path))
+            pb.total = len(package_entries)
             pb.done = pb.total
 
-            for entry in self.parse_packages_file(packages_path):
+            for entry in package_entries:
                 package = RPackage(
                     name=entry['Package'],
                     version=entry['Version'],
@@ -102,10 +104,10 @@ class RFirstStage(Stage):
                 )
                 artifact = Artifact()
                 da = DeclarativeArtifact(
-                    artifact,
-                    entry['file_url'],
-                    entry['file_name'],
-                    self.remote,
+                    artifact=artifact,
+                    url=entry['file_url'],
+                    relative_path=entry['file_name'],
+                    remote=self.remote,
                     deferred_download=self.deferred_download,
                 )
                 dc = DeclarativeContent(content=package, d_artifacts=[da])
@@ -119,9 +121,25 @@ class RFirstStage(Stage):
         Args:
             path: Path to the PACKAGES file
         """
-        with tarfile.open(path, "r:gz") as tar:
-            with tar.extractfile('./PACKAGES') as packages_file:
-                packages_info = packages_file.read().decode('utf-8')
+        # Check if the file is a valid gzip file
+        try:
+            with gzip.open(path, 'rt') as f:
+                f.read(1)
+        except OSError as e:
+            log.error(f"Error reading gzip file at {path}: {e}")
+            raise
+
+        # Decompress the gzip file
+        decompressed_path = path + ".decompressed"
+        with gzip.open(path, 'rb') as f_in:
+            with open(decompressed_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        # Parse the decompressed PACKAGES file
+        with open(decompressed_path, 'rt') as f:
+            packages_info = f.read()
+
+        os.remove(decompressed_path)  # Clean up the decompressed file
 
         # Parse the PACKAGES file into individual package entries
         packages = packages_info.strip().split('\n\n')
