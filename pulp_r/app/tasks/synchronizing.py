@@ -75,44 +75,63 @@ class RFirstStage(Stage):
         result = await downloader.run()
 
         # Use sync_to_async to handle synchronous operations in an async context
-        await sync_to_async(self.parse_and_report_packages)(result.path)
+        package_entries = await sync_to_async(self.parse_packages_file)(result.path)
 
-    def parse_and_report_packages(self, packages_path):
+        # Use an async context to handle the tasks
+        await self.parse_and_report_packages(package_entries)
+
+    async def parse_and_report_packages(self, package_entries):
         """
-        Synchronously parse packages and report progress.
+        Asynchronously parse packages and report progress.
 
         Args:
-            packages_path (str): Path to the packages file
+            package_entries (list): List of package entries
         """
-        with ProgressReport(message='Parsing R metadata', code='parsing.metadata') as pb:
-            package_entries = list(self.parse_packages_file(packages_path))
-            pb.total = len(package_entries)
-            pb.done = pb.total
+        # Create ProgressReport in a synchronous context
+        progress_report = await sync_to_async(ProgressReport.objects.create)(
+            message='Parsing R metadata', code='parsing.metadata'
+        )
 
-            for entry in package_entries:
-                package = RPackage(
-                    name=entry['Package'],
-                    version=entry['Version'],
-                    summary=entry.get('Title', ''),
-                    description=entry.get('Description', ''),
-                    license=entry.get('License', ''),
-                    url=entry.get('URL', ''),
-                    depends=json.dumps(self.parse_dependencies(entry, 'Depends')),
-                    imports=json.dumps(self.parse_dependencies(entry, 'Imports')),
-                    suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
-                    requires=json.dumps(self.parse_dependencies(entry, 'Requires')),
-                )
-                artifact = Artifact()
-                da = DeclarativeArtifact(
-                    artifact=artifact,
-                    url=entry['file_url'],
-                    relative_path=entry['file_name'],
-                    remote=self.remote,
-                    deferred_download=self.deferred_download,
-                )
-                dc = DeclarativeContent(content=package, d_artifacts=[da])
-                # Run the async put method in the event loop
-                asyncio.run_coroutine_threadsafe(self.put(dc), asyncio.get_event_loop())
+        await self.update_progress_report(progress_report, package_entries)
+
+    async def update_progress_report(self, progress_report, package_entries):
+        """
+        Update the progress report and process packages asynchronously.
+
+        Args:
+            progress_report: ProgressReport instance
+            package_entries (list): List of package entries
+        """
+        progress_report.total = len(package_entries)
+        progress_report.done = progress_report.total
+        await sync_to_async(progress_report.save)()
+
+        tasks = []
+        for entry in package_entries:
+            package = RPackage(
+                name=entry['Package'],
+                version=entry['Version'],
+                summary=entry.get('Title', ''),
+                description=entry.get('Description', ''),
+                license=entry.get('License', ''),
+                url=entry.get('URL', ''),
+                depends=json.dumps(self.parse_dependencies(entry, 'Depends')),
+                imports=json.dumps(self.parse_dependencies(entry, 'Imports')),
+                suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
+                requires=json.dumps(self.parse_dependencies(entry, 'Requires')),
+            )
+            artifact = Artifact()
+            da = DeclarativeArtifact(
+                artifact=artifact,
+                url=entry['file_url'],
+                relative_path=entry['file_name'],
+                remote=self.remote,
+                deferred_download=self.deferred_download,
+            )
+            dc = DeclarativeContent(content=package, d_artifacts=[da])
+            tasks.append(self.put(dc))
+
+        await asyncio.gather(*tasks)
 
     def parse_packages_file(self, path):
         """
@@ -143,6 +162,7 @@ class RFirstStage(Stage):
 
         # Parse the PACKAGES file into individual package entries
         packages = packages_info.strip().split('\n\n')
+        package_entries = []
         for package in packages:
             entry = {}
             for line in package.split('\n'):
@@ -151,7 +171,8 @@ class RFirstStage(Stage):
                     entry[key] = value.strip()
             entry['file_url'] = f"{self.remote.url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
-            yield entry
+            package_entries.append(entry)
+        return package_entries
 
     def parse_dependencies(self, entry, dep_type):
         """
