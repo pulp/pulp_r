@@ -1,3 +1,4 @@
+import gzip
 import logging
 import os
 import tempfile
@@ -7,14 +8,12 @@ from django.core.files import File
 from pulpcore.plugin.models import (
     PublishedArtifact,
     PublishedMetadata,
-    RemoteArtifact,
     RepositoryVersion,
 )
 
-from pulp_r.app.models import RPublication
+from pulp_r.app.models import RPackageRepositoryVersion, RPublication
 
 log = logging.getLogger(__name__)
-
 
 def publish(repository_version_pk):
     """
@@ -49,7 +48,8 @@ def publish(repository_version_pk):
             # Write PACKAGES file
             packages_path = os.path.join(temp_dir, 'PACKAGES')
             with open(packages_path, 'w') as packages_file:
-                for package in repository_version.rpackage_set.all():
+                for package_relation in RPackageRepositoryVersion.objects.filter(repository_version=repository_version):
+                    package = package_relation.package
                     packages_file.write(generate_package_metadata(package))
                     packages_file.write('\n\n')
             metadata_files.append(packages_path)
@@ -63,15 +63,14 @@ def publish(repository_version_pk):
 
             # Write other metadata files (e.g., PACKAGES.rds, PACKAGES.json) if needed
 
-            # Add metadata files to the publication
+            # Add metadata files to the publication using create_from_file method
             for metadata_file in metadata_files:
                 with open(metadata_file, 'rb') as file:
-                    metadata = PublishedMetadata(
-                        relative_path=os.path.basename(metadata_file),
+                    PublishedMetadata.create_from_file(
+                        file=File(file),
                         publication=publication,
-                        file=File(file)
+                        relative_path=os.path.basename(metadata_file)
                     )
-                    metadata.save()
 
     log.info(_("Publication: {publication} created").format(publication=publication.pk))
 

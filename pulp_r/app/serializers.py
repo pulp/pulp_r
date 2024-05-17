@@ -5,12 +5,15 @@ Check `Plugin Writer's Guide`_ for more details.
     https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
 """
 
+import logging
 from gettext import gettext as _
 
 from pulpcore.plugin import serializers as platform
 from rest_framework import serializers
 
 from . import models
+
+logger = logging.getLogger(__name__)
 
 
 class RPackageSerializer(platform.SingleArtifactContentSerializer):
@@ -63,11 +66,17 @@ class RRepositorySerializer(platform.RepositorySerializer):
         fields = platform.RepositorySerializer.Meta.fields
         model = models.RRepository
 
-
 class RPublicationSerializer(platform.PublicationSerializer):
     """
     A Serializer for RPublication.
     """
+
+    repository_version = serializers.CharField(
+        help_text=_("Repository Version to be published"),
+        required=True,
+        label=_("Repository Version"),
+        write_only=True,
+    )
 
     class Meta:
         fields = platform.PublicationSerializer.Meta.fields

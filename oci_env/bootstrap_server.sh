@@ -70,3 +70,18 @@ oci-env compose up
 #            "name": "CRAN Repository",
 #            "description": "Repository for CRAN packages"
 #          }'
+
+
+# Sync repository
+# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/repositories/r/r/<repository-href>/sync/" \
+#      -H "Content-Type: application/json" \
+#      -d '{
+#            "remote": "/pulp/api/v3/remotes/r/r/<remote-href>/",
+#            "mirror": true
+#          }'
+
+# Create a publication from the synced repository version
+# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/publications/r/r/" \
+# -H "Content-Type: application/json" \
+# -d '{ "repository_version": "/pulp/api/v3/repositories/r/r/<repository-href>/versions/1/" }'
+

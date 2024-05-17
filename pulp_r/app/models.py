@@ -15,6 +15,7 @@ from pulpcore.plugin.models import (
     Publication,
     Remote,
     Repository,
+    RepositoryVersion,
 )
 
 logger = getLogger(__name__)
@@ -39,6 +40,20 @@ class RPackage(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ['name', 'version']
+
+    def __str__(self):
+        return self.name
+
+class RPackageRepositoryVersion(models.Model):
+    """
+    Represents the relationship between an RPackage and a RepositoryVersion.
+    """
+    package = models.ForeignKey(RPackage, on_delete=models.CASCADE)
+    repository_version = models.ForeignKey(RepositoryVersion, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('package', 'repository_version')
+        default_related_name = "%(app_label)s_%(model_name)s"
 
 class RPublication(Publication):
     """

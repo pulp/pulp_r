@@ -5,6 +5,8 @@ Check `Plugin Writer's Guide`_ for more details.
     https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
 """
 
+import logging
+
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from pulpcore.plugin import viewsets as core
@@ -18,10 +20,12 @@ from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.viewsets import RemoteFilter
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from . import models, serializers, tasks
 
+logger = logging.getLogger(__name__)
 
 class RPackageFilter(core.ContentFilter):
     """
@@ -216,16 +220,38 @@ class RPublicationViewSet(core.PublicationViewSet):
         """
         Publishes a repository.
         """
+        logger.info(f"Received POST request to create publication with data: {request.data}")
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get('repository_version')
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            logger.error(f"Validation error: {e.detail}")
+            raise
+
+        repository_version_url = serializer.validated_data.get('repository_version')
+        # Extract the pk correctly from the URL
+        repository_version_pk = repository_version_url.rstrip('/').split('/')[-3]
+
+        # Correcting the extraction
+        version_number = repository_version_url.rstrip('/').split('/')[-1]
+
+        try:
+            repository_version = models.RepositoryVersion.objects.get(
+                repository_id=repository_version_pk, number=version_number
+            )
+        except models.RepositoryVersion.DoesNotExist:
+            raise ValidationError(f"RepositoryVersion with pk={repository_version_pk} and number={version_number} does not exist")
+
+        logger.info(f"Retrieved repository version: {repository_version}")
 
         result = dispatch(
             tasks.publish,
-            [str(repository_version.repository.pk)],  # Pass the PK as a string
-            kwargs={'repository_version_pk': str(repository_version.pk)},
+            kwargs={'repository_version_pk': str(repository_version.pk)}
         )
         return core.OperationPostponedResponse(result, request)
+
+
+
 
 
 class RDistributionViewSet(core.DistributionViewSet):
