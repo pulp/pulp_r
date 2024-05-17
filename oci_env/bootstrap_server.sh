@@ -52,3 +52,21 @@ oci-env compose up
 
 # Example to show how to access API with authentication (commented out)
 # curl -u admin:password http://localhost:5001/pulp/api/v3/status/ | jq '.'
+
+# Create new remote
+# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/remotes/r/r/" \
+#      -H "Content-Type: application/json" \
+#      -d '{
+#            "name": "CRAN Remote",
+#            "url": "https://cran.r-project.org",
+#            "policy": "on_demand"
+#          }' | jq '.'
+
+
+# Create new repository
+# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/repositories/r/r/" \
+#      -H "Content-Type: application/json" \
+#      -d '{
+#            "name": "CRAN Repository",
+#            "description": "Repository for CRAN packages"
+#          }'

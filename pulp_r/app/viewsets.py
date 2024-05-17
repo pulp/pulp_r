@@ -182,7 +182,6 @@ class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
 
         result = dispatch(
             tasks.synchronize,
-            [repository, remote],
             kwargs={
                 'remote_pk': str(remote.pk),
                 'repository_pk': str(repository.pk),
@@ -223,7 +222,7 @@ class RPublicationViewSet(core.PublicationViewSet):
 
         result = dispatch(
             tasks.publish,
-            [repository_version.repository],
+            [str(repository_version.repository.pk)],  # Pass the PK as a string
             kwargs={'repository_version_pk': str(repository_version.pk)},
         )
         return core.OperationPostponedResponse(result, request)

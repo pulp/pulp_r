@@ -10,6 +10,8 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
+from asgiref.sync import sync_to_async
+import asyncio
 
 from pulp_r.app.models import RPackage, RRemote
 
@@ -71,8 +73,17 @@ class RFirstStage(Stage):
         downloader = self.remote.get_downloader(url=self.remote.url)
         result = await downloader.run()
 
+        # Use sync_to_async to handle synchronous operations in an async context
+        await sync_to_async(self.parse_and_report_packages)(result.path)
+
+    def parse_and_report_packages(self, packages_path):
+        """
+        Synchronously parse packages and report progress.
+
+        Args:
+            packages_path (str): Path to the packages file
+        """
         with ProgressReport(message='Parsing R metadata', code='parsing.metadata') as pb:
-            packages_path = result.path
             pb.total = len(list(self.parse_packages_file(packages_path)))
             pb.done = pb.total
 
@@ -98,7 +109,8 @@ class RFirstStage(Stage):
                     deferred_download=self.deferred_download,
                 )
                 dc = DeclarativeContent(content=package, d_artifacts=[da])
-                await self.put(dc)
+                # Run the async put method in the event loop
+                asyncio.run_coroutine_threadsafe(self.put(dc), asyncio.get_event_loop())
 
     def parse_packages_file(self, path):
         """
