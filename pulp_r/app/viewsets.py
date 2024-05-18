@@ -50,6 +50,7 @@ class RPackageViewSet(core.ContentViewSet):
     queryset = models.RPackage.objects.all()
     serializer_class = serializers.RPackageSerializer
     filterset_class = RPackageFilter
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     @transaction.atomic
     def create(self, request):
@@ -167,6 +168,7 @@ class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
     endpoint_name = 'r'
     queryset = models.RRepository.objects.all()
     serializer_class = serializers.RRepositorySerializer
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
@@ -211,6 +213,7 @@ class RPublicationViewSet(core.PublicationViewSet):
     endpoint_name = 'r'
     queryset = models.RPublication.objects.exclude(complete=False)
     serializer_class = serializers.RPublicationSerializer
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     @extend_schema(
         description="Trigger an asynchronous task to publish content",

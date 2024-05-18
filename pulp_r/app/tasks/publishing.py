@@ -46,7 +46,8 @@ def publish(repository_version_pk):
             metadata_files = []
 
             # Write PACKAGES file
-            packages_path = os.path.join(temp_dir, 'PACKAGES')
+            packages_path = os.path.join(temp_dir, 'src/contrib/PACKAGES')
+            os.makedirs(os.path.dirname(packages_path), exist_ok=True)
             with open(packages_path, 'w') as packages_file:
                 for package_relation in RPackageRepositoryVersion.objects.filter(repository_version=repository_version):
                     package = package_relation.package
@@ -55,7 +56,7 @@ def publish(repository_version_pk):
             metadata_files.append(packages_path)
 
             # Write PACKAGES.gz file
-            packages_gz_path = os.path.join(temp_dir, 'PACKAGES.gz')
+            packages_gz_path = os.path.join(temp_dir, 'src/contrib/PACKAGES.gz')
             with gzip.open(packages_gz_path, 'wb') as packages_gz_file:
                 with open(packages_path, 'rb') as packages_file:
                     packages_gz_file.write(packages_file.read())
@@ -69,7 +70,7 @@ def publish(repository_version_pk):
                     PublishedMetadata.create_from_file(
                         file=File(file),
                         publication=publication,
-                        relative_path=os.path.basename(metadata_file)
+                        relative_path=os.path.relpath(metadata_file, temp_dir)
                     )
 
     log.info(_("Publication: {publication} created").format(publication=publication.pk))
@@ -77,7 +78,7 @@ def publish(repository_version_pk):
 
 def generate_package_metadata(package):
     """
-    Generate the metadata string for a R package.
+    Generate the metadata string for an R package.
 
     Args:
         package (RPackage): The R package object.

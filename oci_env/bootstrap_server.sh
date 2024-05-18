@@ -85,3 +85,11 @@ oci-env compose up
 # -H "Content-Type: application/json" \
 # -d '{ "repository_version": "/pulp/api/v3/repositories/r/r/<repository-href>/versions/1/" }'
 
+# Create a distribution from the publication
+# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/distributions/r/r/" \
+# -H "Content-Type: application/json" \
+# -d '{
+#       "name": "CRAN Distribution",
+#       "base_path": "r/src/contrib",
+#       "publication": "/pulp/api/v3/publications/r/r/<publication-href>/"
+#     }'
