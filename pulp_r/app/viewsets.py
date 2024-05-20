@@ -264,12 +264,15 @@ class RDistributionViewSet(core.DistributionViewSet):
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
 
-    @action(detail=True, methods=['get'])
-    def packages(self, request, pk=None):
+    @action(detail=False, methods=['get'])
+    def packages(self, request):
         """
         Serve the PACKAGES file.
         """
-        distribution = self.get_object()
+        distribution = self.queryset.first()
+        if not distribution:
+            raise NotFound(_("No distribution found"))
+
         publication = distribution.publication
         if not publication:
             raise NotFound(_("Distribution has no publication"))
