@@ -6,6 +6,8 @@ Check `Plugin Writer's Guide`_ for more details.
 """
 
 import logging
+import os
+from gettext import gettext as _
 
 from django.core.files import File
 from django.db import transaction
