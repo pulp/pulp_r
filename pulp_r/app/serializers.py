@@ -96,6 +96,14 @@ class RDistributionSerializer(platform.DistributionSerializer):
         allow_null=True,
     )
 
+    packages_url = serializers.SerializerMethodField()
+
     class Meta:
-        fields = platform.DistributionSerializer.Meta.fields + ("publication",)
+        fields = platform.DistributionSerializer.Meta.fields + ("publication", "packages_url")
         model = models.RDistribution
+
+    def get_packages_url(self, obj):
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.base_path + 'PACKAGES')
+        return None

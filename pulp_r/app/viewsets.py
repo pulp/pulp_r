@@ -7,7 +7,9 @@ Check `Plugin Writer's Guide`_ for more details.
 
 import logging
 
+from django.core.files import File
 from django.db import transaction
+from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
@@ -20,7 +22,7 @@ from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.viewsets import RemoteFilter
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 from . import models, serializers, tasks
@@ -131,10 +133,10 @@ class RRemoteViewSet(core.RemoteViewSet):
         Delete a remote.
         """
         instance = self.get_object()
-        
+
         # TODO: Perform any necessary checks or cleanup before deleting the remote
         # Check if the remote is associated with any repositories and handle the deletion accordingly
-        
+
         repositories = instance.repository_set.all()
         if repositories.exists():
             # Handle the case when the remote is associated with repositories
@@ -142,9 +144,9 @@ class RRemoteViewSet(core.RemoteViewSet):
             raise serializers.ValidationError(
                 "Cannot delete the remote as it is associated with repositories."
             )
-        
+
         self.perform_destroy(instance)
-        
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_update(self, serializer):
@@ -254,9 +256,6 @@ class RPublicationViewSet(core.PublicationViewSet):
         return core.OperationPostponedResponse(result, request)
 
 
-
-
-
 class RDistributionViewSet(core.DistributionViewSet):
     """
     A ViewSet for RDistribution.
@@ -265,3 +264,25 @@ class RDistributionViewSet(core.DistributionViewSet):
     endpoint_name = 'r'
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
+
+    @action(detail=True, methods=['get'])
+    def packages(self, request, pk):
+        """
+        Serve the PACKAGES file.
+        """
+        distribution = self.get_object()
+        publication = distribution.publication
+        if not publication:
+            raise NotFound(_("Distribution has no publication"))
+
+        packages_file_path = 'src/contrib/PACKAGES'
+        storage_path = publication.get_storage_path(packages_file_path)
+
+        try:
+            file = File(open(storage_path, 'rb'))
+        except FileNotFoundError:
+            raise NotFound(_("PACKAGES file not found"))
+
+        response = HttpResponse(file, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename={}'.format(packages_file_path)
+        return response

@@ -53,24 +53,24 @@ def publish(repository_version_pk):
                     package = package_relation.package
                     packages_file.write(generate_package_metadata(package))
                     packages_file.write('\n\n')
-            metadata_files.append(packages_path)
+            metadata_files.append(('src/contrib/PACKAGES', packages_path))
 
             # Write PACKAGES.gz file
             packages_gz_path = os.path.join(temp_dir, 'src/contrib/PACKAGES.gz')
             with gzip.open(packages_gz_path, 'wb') as packages_gz_file:
                 with open(packages_path, 'rb') as packages_file:
                     packages_gz_file.write(packages_file.read())
-            metadata_files.append(packages_gz_path)
+            metadata_files.append(('src/contrib/PACKAGES.gz', packages_gz_path))
 
-            # Write other metadata files (e.g., PACKAGES.rds, PACKAGES.json) if needed
+            # TODO: Write other metadata files (e.g., PACKAGES.rds, PACKAGES.json) if needed
 
             # Add metadata files to the publication using create_from_file method
-            for metadata_file in metadata_files:
-                with open(metadata_file, 'rb') as file:
+            for relative_path, file_path in metadata_files:
+                with open(file_path, 'rb') as file:
                     PublishedMetadata.create_from_file(
                         file=File(file),
                         publication=publication,
-                        relative_path=os.path.relpath(metadata_file, temp_dir)
+                        relative_path=relative_path
                     )
 
     log.info(_("Publication: {publication} created").format(publication=publication.pk))
