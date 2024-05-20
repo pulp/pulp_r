@@ -260,13 +260,12 @@ class RDistributionViewSet(core.DistributionViewSet):
     """
     A ViewSet for RDistribution.
     """
-
     endpoint_name = 'r'
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
 
     @action(detail=True, methods=['get'])
-    def packages(self, request, pk):
+    def packages(self, request, pk=None):
         """
         Serve the PACKAGES file.
         """
@@ -277,7 +276,6 @@ class RDistributionViewSet(core.DistributionViewSet):
 
         packages_file_path = 'src/contrib/PACKAGES'
         storage_path = publication.get_storage_path(packages_file_path)
-
         try:
             file = File(open(storage_path, 'rb'))
         except FileNotFoundError:

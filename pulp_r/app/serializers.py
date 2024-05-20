@@ -8,6 +8,7 @@ Check `Plugin Writer's Guide`_ for more details.
 import logging
 from gettext import gettext as _
 
+from django.urls import reverse
 from pulpcore.plugin import serializers as platform
 from rest_framework import serializers
 
@@ -87,7 +88,6 @@ class RDistributionSerializer(platform.DistributionSerializer):
     """
     A Serializer for RDistribution.
     """
-
     publication = platform.DetailRelatedField(
         required=False,
         help_text=_("Publication to be served"),
@@ -95,7 +95,6 @@ class RDistributionSerializer(platform.DistributionSerializer):
         queryset=models.RPublication.objects.exclude(complete=False),
         allow_null=True,
     )
-
     packages_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -103,7 +102,4 @@ class RDistributionSerializer(platform.DistributionSerializer):
         model = models.RDistribution
 
     def get_packages_url(self, obj):
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.base_path + 'PACKAGES')
-        return None
+        return reverse('r-distribution-packages', kwargs={'pk': obj.pk})
