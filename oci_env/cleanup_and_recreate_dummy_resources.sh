@@ -131,4 +131,19 @@ dist_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/distributions/
           \"base_path\": \"r/src/contrib\",
           \"publication\": \"$pub_href\"
         }")
-echo "Distribution creation response: $dist_response"
+distribution_task_href=$(echo $dist_response | jq -r '.task')
+
+# Wait for distribution to complete
+distribution_status=""
+while [[ "$distribution_status" != "completed" ]]; do
+    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_task_href" | jq -r '.state')
+    echo "Distribution status: $distribution_status"
+    sleep 5
+done
+
+# Extract the distribution href from the task response
+distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_task_href" | jq -r '.created_resources[0]')
+echo "Created distribution: $distribution_href"
+
+# Get distribution details
+curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_href"
