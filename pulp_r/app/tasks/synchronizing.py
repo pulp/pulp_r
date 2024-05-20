@@ -1,8 +1,13 @@
+import asyncio
+import gzip
 import json
 import logging
-import gzip
+import os
 import shutil
 from gettext import gettext as _
+
+import requests
+from asgiref.sync import sync_to_async
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
@@ -10,9 +15,6 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
-from asgiref.sync import sync_to_async
-import asyncio
-import os
 
 from pulp_r.app.models import RPackage, RRemote
 
@@ -120,7 +122,8 @@ class RFirstStage(Stage):
                 suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
                 requires=json.dumps(self.parse_dependencies(entry, 'Requires')),
             )
-            artifact = Artifact()
+
+            artifact = Artifact(size=entry['file_size'])
             da = DeclarativeArtifact(
                 artifact=artifact,
                 url=entry['file_url'],
@@ -169,10 +172,30 @@ class RFirstStage(Stage):
                 if ': ' in line:
                     key, value = line.split(': ', 1)
                     entry[key] = value.strip()
-            entry['file_url'] = f"{self.remote.url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
+            base_url = self.remote.url.replace('/src/contrib/PACKAGES.gz', '')
+            entry['file_url'] = f"{base_url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
+            entry['file_size'] = self.get_file_size(entry['file_url'])
+            
             package_entries.append(entry)
+
         return package_entries
+
+    def get_file_size(self, url):
+        """
+        Get the file size of a remote package file.
+
+        Args:
+            url: The URL of the package file
+        """
+        try:
+            response = requests.head(url)
+            response.raise_for_status()
+            file_size = int(response.headers.get('Content-Length', 0))
+            return file_size
+        except requests.exceptions.RequestException as e:
+            log.error(f"Error retrieving file size for {url}: {e}")
+            return 0
 
     def parse_dependencies(self, entry, dep_type):
         """

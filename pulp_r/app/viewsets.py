@@ -25,9 +25,11 @@ from pulpcore.plugin.viewsets import RemoteFilter
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from . import models, serializers, tasks
+from .permissions import PackagesPermission
 
 logger = logging.getLogger(__name__)
 
@@ -265,11 +267,13 @@ class RDistributionViewSet(core.DistributionViewSet):
     endpoint_name = 'r'
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
+    # TODO: Add Repository index Authorization
+    # permission_classes = [PackagesPermission]
 
     @action(detail=False, methods=['get'])
     def packages(self, request):
         """
-        Serve the PACKAGES file.
+        Serve the PACKAGES file without authentication.
         """
         distribution = self.queryset.first()
         if not distribution:
@@ -288,6 +292,8 @@ class RDistributionViewSet(core.DistributionViewSet):
         if not packages_artifact:
             raise NotFound(_("PACKAGES artifact not found"))
 
-        response = HttpResponse(packages_artifact.file.read(), content_type='text/plain')
+        packages_content = packages_artifact.file.read().decode('utf-8')
+
+        response = HttpResponse(packages_content, content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename={}'.format(packages_file_path)
         return response
