@@ -13,6 +13,7 @@ from pulpcore.plugin.models import (
     ContentArtifact,
     Distribution,
     Publication,
+    PublishedMetadata,
     Remote,
     Repository,
     RepositoryVersion,

@@ -15,7 +15,7 @@ from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
-from pulpcore.plugin.models import ContentArtifact
+from pulpcore.plugin.models import ContentArtifact, PublishedMetadata
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -280,12 +280,14 @@ class RDistributionViewSet(core.DistributionViewSet):
             raise NotFound(_("Distribution has no publication"))
 
         packages_file_path = 'src/contrib/PACKAGES'
-        storage_path = publication.get_storage_path(packages_file_path)
-        try:
-            file = File(open(storage_path, 'rb'))
-        except FileNotFoundError:
+        packages_file = PublishedMetadata.objects.filter(publication=publication, relative_path=packages_file_path).first()
+        if not packages_file:
             raise NotFound(_("PACKAGES file not found"))
 
-        response = HttpResponse(file, content_type='text/plain')
+        packages_artifact = packages_file._artifacts.first()
+        if not packages_artifact:
+            raise NotFound(_("PACKAGES artifact not found"))
+
+        response = HttpResponse(packages_artifact.file.read(), content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename={}'.format(packages_file_path)
         return response
