@@ -4,14 +4,16 @@ import os
 import tempfile
 from gettext import gettext as _
 
-from django.core.files import File
 from pulpcore.plugin.models import (
     PublishedArtifact,
-    PublishedMetadata,
     RepositoryVersion,
 )
 
-from pulp_r.app.models import RPackageRepositoryVersion, RPublication
+from pulp_r.app.models import (
+    RPackageRepositoryVersion,
+    RPublication,
+    RPublishedMetadata,
+)
 
 log = logging.getLogger(__name__)
 
@@ -30,52 +32,69 @@ def publish(repository_version_pk):
         )
     )
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with RPublication.create(repository_version) as publication:
-            # Write package artifacts to the file system
-            for content in repository_version.content:
-                for content_artifact in content.contentartifact_set.all():
-                    published_artifact = PublishedArtifact(
-                        relative_path=content_artifact.relative_path,
-                        publication=publication,
-                        content_artifact=content_artifact
-                    )
-                    published_artifact.save()
-
-            # Write metadata files to the file system
-
-            # Write PACKAGES file
-            packages_path = os.path.join(temp_dir, 'src/contrib/PACKAGES')
-            os.makedirs(os.path.dirname(packages_path), exist_ok=True)
-            with open(packages_path, 'w') as packages_file:
-                for package_relation in RPackageRepositoryVersion.objects.filter(repository_version=repository_version):
-                    package = package_relation.package
-                    packages_file.write(generate_package_metadata(package))
-                    packages_file.write('\n\n')
-
-            with open(packages_path, 'rb') as packages_file:
-                PublishedMetadata.create_from_file(
-                    file=File(packages_file),
+    with RPublication.create(repository_version) as publication:
+        # Write package artifacts to the file system
+        for content in repository_version.content:
+            for content_artifact in content.contentartifact_set.all():
+                published_artifact = PublishedArtifact(
+                    relative_path=content_artifact.relative_path,
                     publication=publication,
-                    relative_path='src/contrib/PACKAGES'
+                    content_artifact=content_artifact
                 )
+                published_artifact.save()
 
-            # Write PACKAGES.gz file
-            packages_gz_path = os.path.join(temp_dir, 'src/contrib/PACKAGES.gz')
-            with gzip.open(packages_gz_path, 'wb') as packages_gz_file:
-                with open(packages_path, 'rb') as packages_file:
-                    packages_gz_file.write(packages_file.read())
+        # Generate and store metadata files
+        # PACKAGES file
+        try:
+            packages_content = generate_packages_content(repository_version)
+            log.info(f"Generated PACKAGES content:\n{packages_content}")
+            RPublishedMetadata.objects.create(
+                publication=publication,
+                relative_path='src/contrib/PACKAGES',
+                content=packages_content
+            )
+        except Exception as e:
+            log.error(f"Error generating PACKAGES content: {str(e)}")
+            raise
 
-            with open(packages_gz_path, 'rb') as packages_gz_file:
-                PublishedMetadata.create_from_file(
-                    file=File(packages_gz_file),
-                    publication=publication,
-                    relative_path='src/contrib/PACKAGES.gz'
-                )
+        # PACKAGES.gz file
+        try:
+            packages_gz_content = gzip.compress(packages_content.encode('utf-8'))
+            RPublishedMetadata.objects.create(
+                publication=publication,
+                relative_path='src/contrib/PACKAGES.gz',
+                content=packages_gz_content
+            )
+        except Exception as e:
+            log.error(f"Error generating PACKAGES.gz content: {str(e)}")
+            raise
 
-            # TODO: Write other metadata files (e.g., PACKAGES.rds, PACKAGES.json) if needed
+        # TODO: Generate and store other metadata files (e.g., PACKAGES.rds, PACKAGES.json) if needed
 
     log.info(_("Publication: {publication} created").format(publication=publication.pk))
+
+def generate_packages_content(repository_version):
+    """
+    Generate the content of the PACKAGES file for a repository version.
+
+    Args:
+        repository_version (RepositoryVersion): The repository version.
+
+    Returns:
+        str: The generated PACKAGES content.
+    """
+    package_relations = RPackageRepositoryVersion.objects.filter(repository_version=repository_version)
+    log.info(f"Found {package_relations.count()} package relations for repository version {repository_version.pk}")
+
+    packages_content = []
+    for package_relation in package_relations:
+        package = package_relation.package
+        log.info(f"Processing package: {package.name}")
+        package_metadata = generate_package_metadata(package)
+        log.info(f"Generated package metadata:\n{package_metadata}")
+        packages_content.append(package_metadata)
+
+    return '\n\n'.join(packages_content)
 
 def generate_package_metadata(package):
     """
@@ -87,13 +106,17 @@ def generate_package_metadata(package):
     metadata = [
         f"Package: {package.name}",
         f"Version: {package.version}",
+        f"Priority: {package.priority}",  # Add priority field
+        f"Depends: {', '.join(dep['package'] for dep in package.depends)}",
+        f"Suggests: {', '.join(dep['package'] for dep in package.suggests)}",
+        f"License: {package.license}",
+        f"MD5sum: {package.md5sum}",  # Add MD5sum field
+        f"NeedsCompilation: {'yes' if package.needs_compilation else 'no'}",  # Add NeedsCompilation field
+        f"Path: {package.path}",  # Add Path field
         f"Title: {package.summary}",
         f"Description: {package.description}",
-        f"License: {package.license}",
         f"URL: {package.url}",
-        f"Depends: {', '.join(dep['package'] for dep in package.depends)}",
         f"Imports: {', '.join(dep['package'] for dep in package.imports)}",
-        f"Suggests: {', '.join(dep['package'] for dep in package.suggests)}",
         f"Requires: {', '.join(dep['package'] for dep in package.requires)}",
     ]
     return '\n'.join(metadata)

@@ -8,3 +8,9 @@ run-tests:
 
 oci-env-pulp-exec:
 	cd ../oci_env && source venv/bin/activate && oci-env compose exec pulp bash
+
+oci-env-pulp-makemigrations:
+	cd ../oci_env && source venv/bin/activate && oci-env compose exec pulp django-admin makemigrations
+
+oci-env-pulp-migrate:
+	cd ../oci_env && source venv/bin/activate && oci-env compose exec pulp django-admin migrate

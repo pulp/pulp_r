@@ -24,10 +24,14 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
 
     name = serializers.CharField(help_text=_("The name of the package"))
     version = serializers.CharField(help_text=_("The version of the package"))
+    priority = serializers.CharField(help_text=_("The priority of the package"), allow_blank=True)
     summary = serializers.CharField(help_text=_("A brief summary of the package"))
     description = serializers.CharField(help_text=_("A longer description of the package"))
     license = serializers.CharField(help_text=_("The license of the package"))
     url = serializers.CharField(help_text=_("The URL of the package homepage"))
+    md5sum = serializers.CharField(help_text=_("The MD5 checksum of the package"), allow_blank=True)
+    needs_compilation = serializers.BooleanField(help_text=_("Whether the package needs compilation"))
+    path = serializers.CharField(help_text=_("The path of the package"), allow_blank=True)
     depends = serializers.JSONField(help_text=_("A list of package dependencies"))
     imports = serializers.JSONField(help_text=_("A list of imported packages"))
     suggests = serializers.JSONField(help_text=_("A list of suggested packages"))
@@ -35,8 +39,8 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
 
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields + (
-            'name', 'version', 'summary', 'description', 'license', 'url',
-            'depends', 'imports', 'suggests', 'requires'
+            'name', 'version', 'priority', 'summary', 'description', 'license', 'url', 'md5sum',
+            'needs_compilation', 'path', 'depends', 'imports', 'suggests', 'requires'
         )
         model = models.RPackage
 

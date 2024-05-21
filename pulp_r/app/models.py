@@ -29,10 +29,14 @@ class RPackage(Content):
 
     name = models.TextField()
     version = models.TextField()
+    priority = models.TextField(default='')  # Add priority field
     summary = models.TextField()
     description = models.TextField()
     license = models.TextField()
     url = models.TextField()
+    md5sum = models.TextField(default='')  # Add MD5sum field
+    needs_compilation = models.BooleanField(default=False)  # Add NeedsCompilation field
+    path = models.TextField(default='')  # Add Path field
     depends = models.JSONField(default=list)
     imports = models.JSONField(default=list)
     suggests = models.JSONField(default=list)
@@ -92,3 +96,12 @@ class RDistribution(Distribution):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+
+class RPublishedMetadata(PublishedMetadata):
+    """
+    PublishedMetadata for RContent.
+    """
+    content = models.TextField(blank=True)
+
+    class Meta:
+        default_related_name = "r_published_metadata"

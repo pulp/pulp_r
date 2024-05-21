@@ -21,6 +21,7 @@ from pulp_r.app.models import RPackage, RRemote
 log = logging.getLogger(__name__)
 
 CHUNK_SIZE = 50
+MAX_PACKAGES_SYNC = 1000
 
 def synchronize(remote_pk, repository_pk, mirror):
     """
@@ -77,7 +78,6 @@ class RFirstStage(Stage):
         downloader = self.remote.get_downloader(url=self.remote.url)
         result = await downloader.run()
 
-        # Directly call the parse_packages_file method since it's already asynchronous
         package_entries = await self.parse_packages_file(result.path)
 
         # Use an async context to handle the tasks
@@ -119,10 +119,14 @@ class RFirstStage(Stage):
         package = RPackage(
             name=entry['Package'],
             version=entry['Version'],
+            priority=entry.get('Priority', ''),
             summary=entry.get('Title', ''),
             description=entry.get('Description', ''),
             license=entry.get('License', ''),
             url=entry.get('URL', ''),
+            md5sum=entry.get('MD5sum', ''),
+            needs_compilation=entry.get('NeedsCompilation', 'no') == 'yes',
+            path=entry.get('Path', ''),
             depends=json.dumps(self.parse_dependencies(entry, 'Depends')),
             imports=json.dumps(self.parse_dependencies(entry, 'Imports')),
             suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
@@ -169,6 +173,10 @@ class RFirstStage(Stage):
 
         # Parse the PACKAGES file into individual package entries
         packages = packages_info.strip().split('\n\n')
+        
+        # TODO: Remove temporary limit
+        packages = packages[:MAX_PACKAGES_SYNC]
+        
         package_entries = []
         for package in packages:
             entry = {}
