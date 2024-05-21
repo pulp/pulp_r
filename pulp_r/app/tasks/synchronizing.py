@@ -1,14 +1,23 @@
 import asyncio
 import gzip
+import hashlib
 import json
 import logging
 import os
 import shutil
+import tempfile
 from gettext import gettext as _
 
 import httpx
 from asgiref.sync import sync_to_async
-from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
+from django.db.models import Q
+from pulpcore.plugin.models import (
+    Artifact,
+    ContentArtifact,
+    ProgressReport,
+    Remote,
+    RemoteArtifact,
+)
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
@@ -16,7 +25,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 
-from pulp_r.app.models import RPackage, RRemote
+from pulp_r.app.models import RPackage, RRemote, RRepository
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +47,7 @@ def synchronize(remote_pk, repository_pk, mirror):
         ValueError: If the remote does not specify a URL to sync
     """
     remote = RRemote.objects.get(pk=remote_pk)
-    repository = Repository.objects.get(pk=repository_pk)
+    repository = RRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
         raise ValueError(_("A remote must have a url specified to synchronize."))
@@ -49,6 +58,25 @@ def synchronize(remote_pk, repository_pk, mirror):
     first_stage = RFirstStage(remote, deferred_download)
     DeclarativeVersion(first_stage, repository, mirror=mirror).create()
 
+async def fetch_and_calculate_checksums(url):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.content
+
+        # Save to a temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_file.write(data)
+        temp_file_path = temp_file.name
+        temp_file.close()
+
+        # Calculate all required checksums
+        checksums = {
+            'sha512': hashlib.sha512(data).hexdigest(),
+            'sha384': hashlib.sha384(data).hexdigest(),
+            'sha256': hashlib.sha256(data).hexdigest(),
+            'sha224': hashlib.sha224(data).hexdigest(),
+        }
+        return checksums, len(data), temp_file_path
 
 class RFirstStage(Stage):
     """
@@ -116,24 +144,66 @@ class RFirstStage(Stage):
             await asyncio.gather(*tasks)
 
     async def process_package(self, entry):
-        package = RPackage(
+        """
+        Process a package entry by fetching its content, calculating checksums, and creating the necessary objects.
+        """
+        # Fetch checksums, file size, and file path
+        checksums, file_size, file_path = await fetch_and_calculate_checksums(entry['file_url'])
+
+        # Check if package already exists
+        package, created = await sync_to_async(RPackage.objects.get_or_create)(
             name=entry['Package'],
             version=entry['Version'],
-            priority=entry.get('Priority', ''),
-            summary=entry.get('Title', ''),
-            description=entry.get('Description', ''),
-            license=entry.get('License', ''),
-            url=entry.get('URL', ''),
-            md5sum=entry.get('MD5sum', ''),
-            needs_compilation=entry.get('NeedsCompilation', 'no') == 'yes',
-            path=entry.get('Path', ''),
-            depends=json.dumps(self.parse_dependencies(entry, 'Depends')),
-            imports=json.dumps(self.parse_dependencies(entry, 'Imports')),
-            suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
-            requires=json.dumps(self.parse_dependencies(entry, 'Requires')),
+            defaults={
+                'priority': entry.get('Priority', ''),
+                'summary': entry.get('Title', ''),
+                'description': entry.get('Description', ''),
+                'license': entry.get('License', ''),
+                'url': entry.get('URL', ''),
+                'md5sum': entry.get('MD5sum', ''),
+                'needs_compilation': entry.get('NeedsCompilation', 'no') == 'yes',
+                'path': entry.get('Path', ''),
+                'depends': json.dumps(self.parse_dependencies(entry, 'Depends')),
+                'imports': json.dumps(self.parse_dependencies(entry, 'Imports')),
+                'suggests': json.dumps(self.parse_dependencies(entry, 'Suggests')),
+                'requires': json.dumps(self.parse_dependencies(entry, 'Requires')),
+            }
         )
 
-        artifact = Artifact(size=entry['file_size'])
+        # Check if artifact already exists
+        artifact, created = await sync_to_async(Artifact.objects.get_or_create)(
+            sha256=checksums['sha256'],
+            defaults={
+                'file': file_path,
+                'size': file_size,
+                'sha224': checksums['sha224'],
+                'sha384': checksums['sha384'],
+                'sha512': checksums['sha512'],
+            }
+        )
+
+        # Check if content artifact already exists
+        content_artifact, created = await sync_to_async(ContentArtifact.objects.get_or_create)(
+            content=package,
+            artifact=artifact,
+            defaults={'relative_path': entry['file_name']}
+        )
+
+        # Check if remote artifact already exists
+        remote_artifact, created = await sync_to_async(RemoteArtifact.objects.get_or_create)(
+            url=entry['file_url'],
+            content_artifact=content_artifact,
+            defaults={
+                'size': file_size,
+                'sha224': checksums['sha224'],
+                'sha256': checksums['sha256'],
+                'sha384': checksums['sha384'],
+                'sha512': checksums['sha512'],
+                'remote': self.remote,
+            }
+        )
+
+        # Create and emit the DeclarativeArtifact and DeclarativeContent
         da = DeclarativeArtifact(
             artifact=artifact,
             url=entry['file_url'],
@@ -187,43 +257,10 @@ class RFirstStage(Stage):
             base_url = self.remote.url.replace('/src/contrib/PACKAGES.gz', '')
             entry['file_url'] = f"{base_url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
+            entry['SHA256'] = entry.get('SHA256', '')
             package_entries.append(entry)
 
-        # Add file sizes in chunks
-        await self.add_file_sizes(package_entries)
-
         return package_entries
-
-    async def add_file_sizes(self, package_entries):
-        """
-        Add file sizes to package entries asynchronously in chunks.
-
-        Args:
-            package_entries (list): List of package entries
-        """
-        chunk_size = CHUNK_SIZE
-        for i in range(0, len(package_entries), chunk_size):
-            chunk = package_entries[i:i + chunk_size]
-            tasks = [self.get_file_size(entry) for entry in chunk]
-            await asyncio.gather(*tasks)
-
-    async def get_file_size(self, entry):
-        """
-        Get the file size of a remote package file and update the entry.
-
-        Args:
-            entry: The package entry
-        """
-        url = entry['file_url']
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.head(url)
-                response.raise_for_status()
-                file_size = int(response.headers.get('Content-Length', 0))
-                entry['file_size'] = file_size
-            except httpx.RequestError as e:
-                log.error(f"Error retrieving file size for {url}: {e}")
-                entry['file_size'] = 0
 
     def parse_dependencies(self, entry, dep_type):
         """

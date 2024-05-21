@@ -17,6 +17,9 @@ from pulpcore.plugin.models import (
     Remote,
     Repository,
     RepositoryVersion,
+    RemoteArtifact,
+    ContentArtifact
+    
 )
 
 logger = getLogger(__name__)
