@@ -7,6 +7,7 @@ import shutil
 from gettext import gettext as _
 
 import httpx
+from asgiref.sync import sync_to_async
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
@@ -80,7 +81,7 @@ class RFirstStage(Stage):
         package_entries = await self.parse_packages_file(result.path)
 
         # Use an async context to handle the tasks
-        await self.parse_and_report_packages(package_entries)
+        await self.parse_and_report_packages(package_entries[:MAX_PACKAGES])
 
     async def parse_and_report_packages(self, package_entries):
         """
@@ -90,7 +91,7 @@ class RFirstStage(Stage):
             package_entries (list): List of package entries
         """
         # Create ProgressReport in a synchronous context
-        progress_report = ProgressReport.objects.create(
+        progress_report = await sync_to_async(ProgressReport.objects.create)(
             message='Parsing R metadata', code='parsing.metadata'
         )
 
@@ -106,7 +107,7 @@ class RFirstStage(Stage):
         """
         progress_report.total = len(package_entries)
         progress_report.done = progress_report.total
-        progress_report.save()
+        await sync_to_async(progress_report.save)()
 
         chunk_size = CHUNK_SIZE
         for i in range(0, len(package_entries), chunk_size):
@@ -178,28 +179,43 @@ class RFirstStage(Stage):
             base_url = self.remote.url.replace('/src/contrib/PACKAGES.gz', '')
             entry['file_url'] = f"{base_url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
-            entry['file_size'] = await self.get_file_size(entry['file_url'])
-            
             package_entries.append(entry)
+
+        # Add file sizes in chunks
+        await self.add_file_sizes(package_entries)
 
         return package_entries
 
-    async def get_file_size(self, url):
+    async def add_file_sizes(self, package_entries):
         """
-        Get the file size of a remote package file.
+        Add file sizes to package entries asynchronously in chunks.
 
         Args:
-            url: The URL of the package file
+            package_entries (list): List of package entries
         """
+        chunk_size = CHUNK_SIZE
+        for i in range(0, len(package_entries), chunk_size):
+            chunk = package_entries[i:i + chunk_size]
+            tasks = [self.get_file_size(entry) for entry in chunk]
+            await asyncio.gather(*tasks)
+
+    async def get_file_size(self, entry):
+        """
+        Get the file size of a remote package file and update the entry.
+
+        Args:
+            entry: The package entry
+        """
+        url = entry['file_url']
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.head(url)
                 response.raise_for_status()
                 file_size = int(response.headers.get('Content-Length', 0))
-                return file_size
+                entry['file_size'] = file_size
             except httpx.RequestError as e:
                 log.error(f"Error retrieving file size for {url}: {e}")
-                return 0
+                entry['file_size'] = 0
 
     def parse_dependencies(self, entry, dep_type):
         """
