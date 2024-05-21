@@ -81,7 +81,7 @@ class RFirstStage(Stage):
         package_entries = await self.parse_packages_file(result.path)
 
         # Use an async context to handle the tasks
-        await self.parse_and_report_packages(package_entries[:MAX_PACKAGES])
+        await self.parse_and_report_packages(package_entries)
 
     async def parse_and_report_packages(self, package_entries):
         """
