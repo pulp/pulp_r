@@ -6,8 +6,7 @@ import os
 import shutil
 from gettext import gettext as _
 
-import requests
-from asgiref.sync import sync_to_async
+import httpx
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
@@ -20,6 +19,7 @@ from pulp_r.app.models import RPackage, RRemote
 
 log = logging.getLogger(__name__)
 
+CHUNK_SIZE = 50
 
 def synchronize(remote_pk, repository_pk, mirror):
     """
@@ -76,8 +76,8 @@ class RFirstStage(Stage):
         downloader = self.remote.get_downloader(url=self.remote.url)
         result = await downloader.run()
 
-        # Use sync_to_async to handle synchronous operations in an async context
-        package_entries = await sync_to_async(self.parse_packages_file)(result.path)
+        # Directly call the parse_packages_file method since it's already asynchronous
+        package_entries = await self.parse_packages_file(result.path)
 
         # Use an async context to handle the tasks
         await self.parse_and_report_packages(package_entries)
@@ -90,7 +90,7 @@ class RFirstStage(Stage):
             package_entries (list): List of package entries
         """
         # Create ProgressReport in a synchronous context
-        progress_report = await sync_to_async(ProgressReport.objects.create)(
+        progress_report = ProgressReport.objects.create(
             message='Parsing R metadata', code='parsing.metadata'
         )
 
@@ -106,37 +106,40 @@ class RFirstStage(Stage):
         """
         progress_report.total = len(package_entries)
         progress_report.done = progress_report.total
-        await sync_to_async(progress_report.save)()
+        progress_report.save()
 
-        tasks = []
-        for entry in package_entries:
-            package = RPackage(
-                name=entry['Package'],
-                version=entry['Version'],
-                summary=entry.get('Title', ''),
-                description=entry.get('Description', ''),
-                license=entry.get('License', ''),
-                url=entry.get('URL', ''),
-                depends=json.dumps(self.parse_dependencies(entry, 'Depends')),
-                imports=json.dumps(self.parse_dependencies(entry, 'Imports')),
-                suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
-                requires=json.dumps(self.parse_dependencies(entry, 'Requires')),
-            )
+        chunk_size = CHUNK_SIZE
+        for i in range(0, len(package_entries), chunk_size):
+            chunk = package_entries[i:i + chunk_size]
+            tasks = [self.process_package(entry) for entry in chunk]
+            await asyncio.gather(*tasks)
 
-            artifact = Artifact(size=entry['file_size'])
-            da = DeclarativeArtifact(
-                artifact=artifact,
-                url=entry['file_url'],
-                relative_path=entry['file_name'],
-                remote=self.remote,
-                deferred_download=self.deferred_download,
-            )
-            dc = DeclarativeContent(content=package, d_artifacts=[da])
-            tasks.append(self.put(dc))
+    async def process_package(self, entry):
+        package = RPackage(
+            name=entry['Package'],
+            version=entry['Version'],
+            summary=entry.get('Title', ''),
+            description=entry.get('Description', ''),
+            license=entry.get('License', ''),
+            url=entry.get('URL', ''),
+            depends=json.dumps(self.parse_dependencies(entry, 'Depends')),
+            imports=json.dumps(self.parse_dependencies(entry, 'Imports')),
+            suggests=json.dumps(self.parse_dependencies(entry, 'Suggests')),
+            requires=json.dumps(self.parse_dependencies(entry, 'Requires')),
+        )
 
-        await asyncio.gather(*tasks)
+        artifact = Artifact(size=entry['file_size'])
+        da = DeclarativeArtifact(
+            artifact=artifact,
+            url=entry['file_url'],
+            relative_path=entry['file_name'],
+            remote=self.remote,
+            deferred_download=self.deferred_download,
+        )
+        dc = DeclarativeContent(content=package, d_artifacts=[da])
+        await self.put(dc)
 
-    def parse_packages_file(self, path):
+    async def parse_packages_file(self, path):
         """
         Parse the PACKAGES file containing R package metadata.
 
@@ -175,27 +178,28 @@ class RFirstStage(Stage):
             base_url = self.remote.url.replace('/src/contrib/PACKAGES.gz', '')
             entry['file_url'] = f"{base_url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
-            entry['file_size'] = self.get_file_size(entry['file_url'])
+            entry['file_size'] = await self.get_file_size(entry['file_url'])
             
             package_entries.append(entry)
 
         return package_entries
 
-    def get_file_size(self, url):
+    async def get_file_size(self, url):
         """
         Get the file size of a remote package file.
 
         Args:
             url: The URL of the package file
         """
-        try:
-            response = requests.head(url)
-            response.raise_for_status()
-            file_size = int(response.headers.get('Content-Length', 0))
-            return file_size
-        except requests.exceptions.RequestException as e:
-            log.error(f"Error retrieving file size for {url}: {e}")
-            return 0
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.head(url)
+                response.raise_for_status()
+                file_size = int(response.headers.get('Content-Length', 0))
+                return file_size
+            except httpx.RequestError as e:
+                log.error(f"Error retrieving file size for {url}: {e}")
+                return 0
 
     def parse_dependencies(self, entry, dep_type):
         """
