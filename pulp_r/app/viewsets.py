@@ -269,7 +269,7 @@ class RDistributionViewSet(core.DistributionViewSet):
     serializer_class = serializers.RDistributionSerializer
     permission_classes = [PackagesPermission]
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='src/contrib/PACKAGES', url_name='packages')
     def packages(self, request):
         """
         Serve the compressed PACKAGES file

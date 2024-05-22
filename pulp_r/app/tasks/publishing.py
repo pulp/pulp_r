@@ -64,6 +64,7 @@ def publish(repository_version_pk):
         # Create PublishedArtifacts for each ContentArtifact
         published_artifacts = []
         for content_artifact in content_artifacts:
+            # Published Artifacts are served at path: <CONTENT_PATH_PREFIX>/<distribution_path>/<relative_path>
             published_artifact = PublishedArtifact(
                 relative_path=content_artifact.relative_path,
                 publication=publication,
