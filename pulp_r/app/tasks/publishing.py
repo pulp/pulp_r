@@ -1,21 +1,47 @@
-import gzip
 import logging
 import os
 import tempfile
 from gettext import gettext as _
 
+from django.db import IntegrityError
 from pulpcore.plugin.models import (
+    ContentArtifact,
     PublishedArtifact,
+    PublishedMetadata,
     RepositoryVersion,
 )
 
-from pulp_r.app.models import (
-    RPackageRepositoryVersion,
-    RPublication,
-    RPublishedMetadata,
-)
+from pulp_r.app.models import RPublication
 
 log = logging.getLogger(__name__)
+
+def generate_packages_file_content(repository_version):
+    """
+    Generate the content for the PACKAGES file based on the repository version.
+    """
+    packages_content = ""
+    content_artifacts = ContentArtifact.objects.filter(
+        content__pk__in=repository_version.content.values_list('pk', flat=True)
+    )
+    
+    for content_artifact in content_artifacts:
+        package = content_artifact.content.cast()
+        package_entry = (
+            f"Package: {package.name}\n"
+            f"Version: {package.version}\n"
+            f"Priority: {package.priority}\n"
+            f"Title: {package.summary}\n"
+            f"Description: {package.description}\n"
+            f"License: {package.license}\n"
+            f"URL: {package.url}\n"
+            f"MD5sum: {package.md5sum}\n"
+            f"NeedsCompilation: {package.needs_compilation}\n"
+            f"File: {content_artifact.relative_path}\n"
+            f"SHA256: {content_artifact.artifact.sha256}\n\n"
+        )
+        packages_content += package_entry
+
+    return packages_content.strip()
 
 def publish(repository_version_pk):
     """
@@ -33,90 +59,93 @@ def publish(repository_version_pk):
     )
 
     with RPublication.create(repository_version) as publication:
-        # Write package artifacts to the file system
-        for content in repository_version.content:
-            for content_artifact in content.contentartifact_set.all():
-                published_artifact = PublishedArtifact(
-                    relative_path=content_artifact.relative_path,
-                    publication=publication,
-                    content_artifact=content_artifact
-                )
-                published_artifact.save()
+        # Get all content artifacts associated with the repository version
+        content_artifacts = ContentArtifact.objects.filter(
+            content__pk__in=repository_version.content.values_list('pk', flat=True)
+        )
 
-        # Generate and store metadata files
-        # PACKAGES file
-        try:
-            packages_content = generate_packages_content(repository_version)
-            log.info(f"Generated PACKAGES content:\n{packages_content}")
-            RPublishedMetadata.objects.create(
+        # Create PublishedArtifacts for each ContentArtifact
+        published_artifacts = []
+        for content_artifact in content_artifacts:
+            published_artifact = PublishedArtifact(
+                relative_path=content_artifact.relative_path,
                 publication=publication,
-                relative_path='src/contrib/PACKAGES',
-                content=packages_content
+                content_artifact=content_artifact
             )
-        except Exception as e:
-            log.error(f"Error generating PACKAGES content: {str(e)}")
-            raise
+            published_artifacts.append(published_artifact)
 
-        # PACKAGES.gz file
+        # Bulk create the PublishedArtifacts
+        PublishedArtifact.objects.bulk_create(published_artifacts)
+
+        # Generate the PACKAGES file content
+        packages_content = generate_packages_file_content(repository_version)
+
+        # Save the PACKAGES file as PublishedMetadata
+        packages_file_path = 'src/contrib/PACKAGES'
         try:
-            packages_gz_content = gzip.compress(packages_content.encode('utf-8'))
-            RPublishedMetadata.objects.create(
-                publication=publication,
-                relative_path='src/contrib/PACKAGES.gz',
-                content=packages_gz_content
-            )
-        except Exception as e:
-            log.error(f"Error generating PACKAGES.gz content: {str(e)}")
-            raise
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(packages_content.encode('utf-8'))
+                temp_file_path = temp_file.name
 
-        # TODO: Generate and store other metadata files (e.g., PACKAGES.rds, PACKAGES.json) if needed
+            with open(temp_file_path, 'rb') as temp_file:
+                try:
+                    PublishedMetadata.create_from_file(
+                        file=temp_file,
+                        publication=publication,
+                        relative_path=packages_file_path
+                    )
+                except IntegrityError:
+                    log.warning(
+                        f"Duplicate metadata entry for path {packages_file_path} in publication {publication.pk}, updating existing entry."
+                    )
+                    existing_metadata = PublishedMetadata.objects.get(
+                        publication=publication,
+                        relative_path=packages_file_path
+                    )
+                    existing_metadata.delete()
+                    PublishedMetadata.create_from_file(
+                        file=temp_file,
+                        publication=publication,
+                        relative_path=packages_file_path
+                    )
+
+            # Clean up the temporary file
+            os.unlink(temp_file_path)
+        except Exception as e:
+            log.error(f"Error creating PublishedMetadata for {packages_file_path}: {str(e)}")
+
+        # Generate PublishedMetadata files from PublishedArtifacts
+        for published_artifact in published_artifacts:
+            try:
+                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                    temp_file.write(published_artifact.content_artifact.artifact.file.read())
+                    temp_file_path = temp_file.name
+
+                with open(temp_file_path, 'rb') as temp_file:
+                    try:
+                        PublishedMetadata.create_from_file(
+                            file=temp_file,
+                            publication=publication,
+                            relative_path=published_artifact.relative_path
+                        )
+                    except IntegrityError:
+                        log.warning(
+                            f"Duplicate metadata entry for path {published_artifact.relative_path} in publication {publication.pk}, updating existing entry."
+                        )
+                        existing_metadata = PublishedMetadata.objects.get(
+                            publication=publication,
+                            relative_path=published_artifact.relative_path
+                        )
+                        existing_metadata.delete()
+                        PublishedMetadata.create_from_file(
+                            file=temp_file,
+                            publication=publication,
+                            relative_path=published_artifact.relative_path
+                        )
+
+                # Clean up the temporary file
+                os.unlink(temp_file_path)
+            except Exception as e:
+                log.error(f"Error creating PublishedMetadata for {published_artifact.relative_path}: {str(e)}")
 
     log.info(_("Publication: {publication} created").format(publication=publication.pk))
-
-def generate_packages_content(repository_version):
-    """
-    Generate the content of the PACKAGES file for a repository version.
-
-    Args:
-        repository_version (RepositoryVersion): The repository version.
-
-    Returns:
-        str: The generated PACKAGES content.
-    """
-    package_relations = RPackageRepositoryVersion.objects.filter(repository_version=repository_version)
-    log.info(f"Found {package_relations.count()} package relations for repository version {repository_version.pk}")
-
-    packages_content = []
-    for package_relation in package_relations:
-        package = package_relation.package
-        log.info(f"Processing package: {package.name}")
-        package_metadata = generate_package_metadata(package)
-        log.info(f"Generated package metadata:\n{package_metadata}")
-        packages_content.append(package_metadata)
-
-    return '\n\n'.join(packages_content)
-
-def generate_package_metadata(package):
-    """
-    Generate the metadata string for an R package.
-
-    Args:
-        package (RPackage): The R package object.
-    """
-    metadata = [
-        f"Package: {package.name}",
-        f"Version: {package.version}",
-        f"Priority: {package.priority}",  # Add priority field
-        f"Depends: {', '.join(dep['package'] for dep in package.depends)}",
-        f"Suggests: {', '.join(dep['package'] for dep in package.suggests)}",
-        f"License: {package.license}",
-        f"MD5sum: {package.md5sum}",  # Add MD5sum field
-        f"NeedsCompilation: {'yes' if package.needs_compilation else 'no'}",  # Add NeedsCompilation field
-        f"Path: {package.path}",  # Add Path field
-        f"Title: {package.summary}",
-        f"Description: {package.description}",
-        f"URL: {package.url}",
-        f"Imports: {', '.join(dep['package'] for dep in package.imports)}",
-        f"Requires: {', '.join(dep['package'] for dep in package.requires)}",
-    ]
-    return '\n'.join(metadata)

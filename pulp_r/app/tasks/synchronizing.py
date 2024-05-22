@@ -29,8 +29,8 @@ from pulp_r.app.models import RPackage, RRemote, RRepository
 
 log = logging.getLogger(__name__)
 
-CHUNK_SIZE = 50
-MAX_PACKAGES_SYNC = 1000
+CHUNK_SIZE = 20
+MAX_PACKAGES_SYNC = 500
 
 def synchronize(remote_pk, repository_pk, mirror):
     """
@@ -56,27 +56,39 @@ def synchronize(remote_pk, repository_pk, mirror):
     deferred_download = remote.policy != Remote.IMMEDIATE
 
     first_stage = RFirstStage(remote, deferred_download)
+    # Run pipeline and create a new repository version with the content units associated
     DeclarativeVersion(first_stage, repository, mirror=mirror).create()
 
 async def fetch_and_calculate_checksums(url):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.content
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            response.raise_for_status()  # Raises an exception for 4xx/5xx responses
 
-        # Save to a temporary file
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_file.write(data)
-        temp_file_path = temp_file.name
-        temp_file.close()
+            data = response.content
+            if not data:
+                log.error(f"No data fetched from {url}")
+                return None, 0, None
 
-        # Calculate all required checksums
-        checksums = {
-            'sha512': hashlib.sha512(data).hexdigest(),
-            'sha384': hashlib.sha384(data).hexdigest(),
-            'sha256': hashlib.sha256(data).hexdigest(),
-            'sha224': hashlib.sha224(data).hexdigest(),
-        }
-        return checksums, len(data), temp_file_path
+            # Save to a temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            temp_file.write(data)
+            temp_file_path = temp_file.name
+            temp_file.close()
+
+            # Calculate all required checksums
+            checksums = {
+                'sha512': hashlib.sha512(data).hexdigest(),
+                'sha384': hashlib.sha384(data).hexdigest(),
+                'sha256': hashlib.sha256(data).hexdigest(),
+                'sha224': hashlib.sha224(data).hexdigest(),
+            }
+            return checksums, len(data), temp_file_path
+    except httpx.HTTPStatusError as http_err:
+        log.error(f"HTTP error occurred while fetching {url}: {http_err}")
+    except Exception as err:
+        log.error(f"Unexpected error occurred while fetching {url}: {err}")
+    return None, 0, None
 
 class RFirstStage(Stage):
     """
@@ -150,8 +162,12 @@ class RFirstStage(Stage):
         # Fetch checksums, file size, and file path
         checksums, file_size, file_path = await fetch_and_calculate_checksums(entry['file_url'])
 
+        if not checksums or file_size == 0 or not file_path:
+            log.error(f"Failed to fetch and calculate checksums for {entry['file_url']}")
+            return  # Skip further processing for this entry
+
         # Check if package already exists
-        package, created = await sync_to_async(RPackage.objects.get_or_create)(
+        package, _ = await sync_to_async(RPackage.objects.get_or_create)(
             name=entry['Package'],
             version=entry['Version'],
             defaults={
@@ -171,7 +187,7 @@ class RFirstStage(Stage):
         )
 
         # Check if artifact already exists
-        artifact, created = await sync_to_async(Artifact.objects.get_or_create)(
+        artifact, _ = await sync_to_async(Artifact.objects.get_or_create)(
             sha256=checksums['sha256'],
             defaults={
                 'file': file_path,
@@ -183,14 +199,13 @@ class RFirstStage(Stage):
         )
 
         # Check if content artifact already exists
-        content_artifact, created = await sync_to_async(ContentArtifact.objects.get_or_create)(
+        content_artifact, _ = await sync_to_async(ContentArtifact.objects.get_or_create)(
             content=package,
             artifact=artifact,
             defaults={'relative_path': entry['file_name']}
         )
 
-        # Check if remote artifact already exists
-        remote_artifact, created = await sync_to_async(RemoteArtifact.objects.get_or_create)(
+        await sync_to_async(RemoteArtifact.objects.get_or_create)(
             url=entry['file_url'],
             content_artifact=content_artifact,
             defaults={

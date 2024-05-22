@@ -268,12 +268,12 @@ class RDistributionViewSet(core.DistributionViewSet):
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
     # TODO: Add Repository index Authorization
-    permission_classes = [PackagesPermission]
+    # permission_classes = [PackagesPermission]
 
     @action(detail=False, methods=['get'])
     def packages(self, request):
         """
-        Serve the PACKAGES file without authentication.
+        Serve the PACKAGES file
         """
         distribution = self.queryset.first()
         logger.info(f"Distribution: {distribution}")
@@ -286,14 +286,13 @@ class RDistributionViewSet(core.DistributionViewSet):
             raise NotFound(_("Distribution has no publication"))
 
         packages_file_path = 'src/contrib/PACKAGES'
-        packages_file = models.RPublishedMetadata.objects.filter(publication=publication, relative_path=packages_file_path).first()
+        packages_file = PublishedMetadata.objects.filter(publication=publication, relative_path=packages_file_path).first()
         logger.info(f"Packages file: {packages_file}")
         if not packages_file:
             raise NotFound(_("PACKAGES file not found"))
 
-        packages_content = packages_file.content
-        logger.info(f"Packages content: {packages_content}")
-
-        response = HttpResponse(packages_content, content_type='text/plain')
+        # Serve the PublishedMetadata file
+        artifact = packages_file.contentartifact_set.first().artifact
+        response = HttpResponse(artifact.file.open(), content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename={}'.format(packages_file_path)
         return response

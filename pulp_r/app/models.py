@@ -15,11 +15,10 @@ from pulpcore.plugin.models import (
     Publication,
     PublishedMetadata,
     Remote,
-    Repository,
-    RepositoryVersion,
     RemoteArtifact,
-    ContentArtifact
-    
+    Repository,
+    RepositoryContent,
+    RepositoryVersion,
 )
 
 logger = getLogger(__name__)
