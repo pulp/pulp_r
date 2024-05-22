@@ -77,14 +77,22 @@ def publish(repository_version_pk):
         # Bulk create the PublishedArtifacts
         PublishedArtifact.objects.bulk_create(published_artifacts)
 
+        # Generate the full PublishedMetadata file content in memory
+        metadata_content = ""
+        for published_artifact in published_artifacts:
+            metadata_content += f"{published_artifact.relative_path}\n"
+
         # Generate the PACKAGES file content
         packages_content = generate_packages_file_content(repository_version)
 
-        # Save the PACKAGES file as PublishedMetadata
-        packages_file_path = 'src/contrib/PACKAGES'
+        # Combine the PublishedMetadata and PACKAGES content
+        full_metadata_content = f"{metadata_content}\n{packages_content}"
+
+        # Save the full PublishedMetadata file
+        metadata_file_path = 'src/contrib/PACKAGES'
         try:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                temp_file.write(packages_content.encode('utf-8'))
+                temp_file.write(full_metadata_content.encode('utf-8'))
                 temp_file_path = temp_file.name
 
             with open(temp_file_path, 'rb') as temp_file:
@@ -92,60 +100,26 @@ def publish(repository_version_pk):
                     PublishedMetadata.create_from_file(
                         file=temp_file,
                         publication=publication,
-                        relative_path=packages_file_path
+                        relative_path=metadata_file_path
                     )
                 except IntegrityError:
                     log.warning(
-                        f"Duplicate metadata entry for path {packages_file_path} in publication {publication.pk}, updating existing entry."
+                        f"Duplicate metadata entry for path {metadata_file_path} in publication {publication.pk}, updating existing entry."
                     )
                     existing_metadata = PublishedMetadata.objects.get(
                         publication=publication,
-                        relative_path=packages_file_path
+                        relative_path=metadata_file_path
                     )
                     existing_metadata.delete()
                     PublishedMetadata.create_from_file(
                         file=temp_file,
                         publication=publication,
-                        relative_path=packages_file_path
+                        relative_path=metadata_file_path
                     )
 
             # Clean up the temporary file
             os.unlink(temp_file_path)
         except Exception as e:
-            log.error(f"Error creating PublishedMetadata for {packages_file_path}: {str(e)}")
-
-        # Generate PublishedMetadata files from PublishedArtifacts
-        for published_artifact in published_artifacts:
-            try:
-                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                    temp_file.write(published_artifact.content_artifact.artifact.file.read())
-                    temp_file_path = temp_file.name
-
-                with open(temp_file_path, 'rb') as temp_file:
-                    try:
-                        PublishedMetadata.create_from_file(
-                            file=temp_file,
-                            publication=publication,
-                            relative_path=published_artifact.relative_path
-                        )
-                    except IntegrityError:
-                        log.warning(
-                            f"Duplicate metadata entry for path {published_artifact.relative_path} in publication {publication.pk}, updating existing entry."
-                        )
-                        existing_metadata = PublishedMetadata.objects.get(
-                            publication=publication,
-                            relative_path=published_artifact.relative_path
-                        )
-                        existing_metadata.delete()
-                        PublishedMetadata.create_from_file(
-                            file=temp_file,
-                            publication=publication,
-                            relative_path=published_artifact.relative_path
-                        )
-
-                # Clean up the temporary file
-                os.unlink(temp_file_path)
-            except Exception as e:
-                log.error(f"Error creating PublishedMetadata for {published_artifact.relative_path}: {str(e)}")
+            log.error(f"Error creating PublishedMetadata for {metadata_file_path}: {str(e)}")
 
     log.info(_("Publication: {publication} created").format(publication=publication.pk))
