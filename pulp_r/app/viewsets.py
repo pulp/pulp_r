@@ -267,13 +267,12 @@ class RDistributionViewSet(core.DistributionViewSet):
     endpoint_name = 'r'
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
-    # TODO: Add Repository index Authorization
-    # permission_classes = [PackagesPermission]
+    permission_classes = [PackagesPermission]
 
     @action(detail=False, methods=['get'])
     def packages(self, request):
         """
-        Serve the PACKAGES file
+        Serve the compressed PACKAGES file
         """
         distribution = self.queryset.first()
         logger.info(f"Distribution: {distribution}")
@@ -285,14 +284,14 @@ class RDistributionViewSet(core.DistributionViewSet):
         if not publication:
             raise NotFound(_("Distribution has no publication"))
 
-        packages_file_path = 'src/contrib/PACKAGES'
+        packages_file_path = 'src/contrib/PACKAGES.gz'
         packages_file = PublishedMetadata.objects.filter(publication=publication, relative_path=packages_file_path).first()
         logger.info(f"Packages file: {packages_file}")
         if not packages_file:
-            raise NotFound(_("PACKAGES file not found"))
+            raise NotFound(_("PACKAGES.gz file not found"))
 
-        # Serve the PublishedMetadata file
+        # Serve the compressed PublishedMetadata file
         artifact = packages_file.contentartifact_set.first().artifact
-        response = HttpResponse(artifact.file.open(), content_type='text/plain')
+        response = HttpResponse(artifact.file.open(), content_type='application/gzip')
         response['Content-Disposition'] = 'attachment; filename={}'.format(packages_file_path)
         return response

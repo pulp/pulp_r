@@ -1,3 +1,4 @@
+import gzip
 import logging
 import os
 import tempfile
@@ -29,15 +30,11 @@ def generate_packages_file_content(repository_version):
         package_entry = (
             f"Package: {package.name}\n"
             f"Version: {package.version}\n"
-            f"Priority: {package.priority}\n"
-            f"Title: {package.summary}\n"
-            f"Description: {package.description}\n"
+            f"Depends: {package.depends}\n"
+            f"Suggests: {package.suggests}\n"
             f"License: {package.license}\n"
-            f"URL: {package.url}\n"
             f"MD5sum: {package.md5sum}\n"
-            f"NeedsCompilation: {package.needs_compilation}\n"
-            f"File: {content_artifact.relative_path}\n"
-            f"SHA256: {content_artifact.artifact.sha256}\n\n"
+            f"NeedsCompilation: {'yes' if package.needs_compilation else 'no'}\n\n"
         )
         packages_content += package_entry
 
@@ -77,22 +74,15 @@ def publish(repository_version_pk):
         # Bulk create the PublishedArtifacts
         PublishedArtifact.objects.bulk_create(published_artifacts)
 
-        # Generate the full PublishedMetadata file content in memory
-        metadata_content = ""
-        for published_artifact in published_artifacts:
-            metadata_content += f"{published_artifact.relative_path}\n"
-
         # Generate the PACKAGES file content
         packages_content = generate_packages_file_content(repository_version)
 
-        # Combine the PublishedMetadata and PACKAGES content
-        full_metadata_content = f"{metadata_content}\n{packages_content}"
-
-        # Save the full PublishedMetadata file
-        metadata_file_path = 'src/contrib/PACKAGES'
+        # Save the compressed PACKAGES file
+        metadata_file_path = 'src/contrib/PACKAGES.gz'
         try:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                temp_file.write(full_metadata_content.encode('utf-8'))
+                with gzip.open(temp_file.name, 'wb') as gzip_file:
+                    gzip_file.write(packages_content.encode('utf-8'))
                 temp_file_path = temp_file.name
 
             with open(temp_file_path, 'rb') as temp_file:
