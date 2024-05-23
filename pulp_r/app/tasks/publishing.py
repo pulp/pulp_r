@@ -1,4 +1,5 @@
 import gzip
+import json
 import logging
 import os
 import tempfile
@@ -17,6 +18,22 @@ from pulp_r.app.models import MetadataContent, RPublication
 
 log = logging.getLogger(__name__)
 
+def format_dependencies(deps):
+    """
+    Format dependencies list as a comma-separated string.
+    """
+    if not deps:
+        return ''
+    
+    # Ensure deps is a list of dictionaries
+    if isinstance(deps, str):
+        deps = json.loads(deps)
+    
+    return ', '.join(
+        f"{dep.get('package', '')}" + (f" ({dep.get('version', '')})" if 'version' in dep else '')
+        for dep in deps
+    )
+
 def generate_packages_file_content(repository_version):
     """
     Generate the content for the PACKAGES file based on the repository version.
@@ -25,14 +42,15 @@ def generate_packages_file_content(repository_version):
     content_artifacts = ContentArtifact.objects.filter(
         content__pk__in=repository_version.content.values_list('pk', flat=True)
     )
-    
+
     for content_artifact in content_artifacts:
         package = content_artifact.content.cast()
         package_entry = (
             f"Package: {package.name}\n"
             f"Version: {package.version}\n"
-            f"Depends: {package.depends}\n"
-            f"Suggests: {package.suggests}\n"
+            f"Depends: {format_dependencies(package.depends)}\n"
+            f"Imports: {format_dependencies(package.imports)}\n"
+            f"Suggests: {format_dependencies(package.suggests)}\n"
             f"License: {package.license}\n"
             f"MD5sum: {package.md5sum}\n"
             f"NeedsCompilation: {'yes' if package.needs_compilation else 'no'}\n\n"

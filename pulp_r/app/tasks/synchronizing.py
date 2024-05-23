@@ -29,8 +29,8 @@ from pulp_r.app.models import RPackage, RRemote, RRepository
 
 log = logging.getLogger(__name__)
 
-CHUNK_SIZE = 20
-MAX_PACKAGES_SYNC = 500
+CHUNK_SIZE = 50
+MAX_PACKAGES_SYNC = 1000
 
 def synchronize(remote_pk, repository_pk, mirror):
     """
@@ -179,10 +179,10 @@ class RFirstStage(Stage):
                 'md5sum': entry.get('MD5sum', ''),
                 'needs_compilation': entry.get('NeedsCompilation', 'no') == 'yes',
                 'path': entry.get('Path', ''),
-                'depends': json.dumps(self.parse_dependencies(entry, 'Depends')),
-                'imports': json.dumps(self.parse_dependencies(entry, 'Imports')),
-                'suggests': json.dumps(self.parse_dependencies(entry, 'Suggests')),
-                'requires': json.dumps(self.parse_dependencies(entry, 'Requires')),
+                'depends': json.dumps(self.parse_dependencies(entry.get('Depends', ''))),
+                'imports': json.dumps(self.parse_dependencies(entry.get('Imports', ''))),
+                'suggests': json.dumps(self.parse_dependencies(entry.get('Suggests', ''))),
+                'requires': json.dumps(self.parse_dependencies(entry.get('Requires', ''))),
             }
         )
 
@@ -258,10 +258,10 @@ class RFirstStage(Stage):
 
         # Parse the PACKAGES file into individual package entries
         packages = packages_info.strip().split('\n\n')
-        
+
         # TODO: Remove temporary limit
         packages = packages[:MAX_PACKAGES_SYNC]
-        
+
         package_entries = []
         for package in packages:
             entry = {}
@@ -273,20 +273,25 @@ class RFirstStage(Stage):
             entry['file_url'] = f"{base_url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
             entry['SHA256'] = entry.get('SHA256', '')
+            entry['Depends'] = self.parse_dependencies(entry.get('Depends', ''))
+            entry['Imports'] = self.parse_dependencies(entry.get('Imports', ''))
+            entry['Suggests'] = self.parse_dependencies(entry.get('Suggests', ''))
+            entry['Requires'] = self.parse_dependencies(entry.get('Requires', ''))
             package_entries.append(entry)
 
         return package_entries
 
-    def parse_dependencies(self, entry, dep_type):
+    def parse_dependencies(self, dep_string):
         """
-        Parse package dependencies from a R metadata entry.
+        Parse package dependencies from a comma-separated string.
 
         Args:
-            entry: A dictionary representing a R package metadata entry
-            dep_type: The type of dependency to parse (Depends, Imports, Suggests, Requires)
+            dep_string: A comma-separated string of dependencies
         """
+        if isinstance(dep_string, list):
+            return dep_string
+
         dependencies = []
-        dep_string = entry.get(dep_type, '')
         if dep_string:
             for dep in dep_string.split(','):
                 dep = dep.strip()

@@ -57,7 +57,7 @@ R --version
 BASE_URL="http://localhost:5001/pulp/api/v3/content/r"
 
 # The name of the R package to install
-PACKAGE_NAME="absorber"
+PACKAGE_NAME="acopula"
 
 # R command to install the package from the specified repository
 R_COMMAND="install.packages('${PACKAGE_NAME}', repos='${BASE_URL}')"

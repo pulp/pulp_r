@@ -12,5 +12,4 @@ router.register(r'distributions', viewsets.RDistributionViewSet)
 
 urlpatterns = [
     path('pulp/api/v3/r/', include((router.urls, 'r'), namespace='r')),
-    path('pulp/api/v3/content/r/src/contrib/PACKAGES', viewsets.RDistributionViewSet.as_view({'get': 'packages'}), name='r-distribution-packages'),
 ]
