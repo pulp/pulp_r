@@ -10,7 +10,6 @@ from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
     PublishedArtifact,
-    PublishedMetadata,
     RepositoryVersion,
 )
 
@@ -39,9 +38,12 @@ def generate_packages_file_content(repository_version):
     Generate the content for the PACKAGES file based on the repository version.
     """
     packages_content = ""
-    content_artifacts = ContentArtifact.objects.filter(
+    content_artifacts = list(ContentArtifact.objects.filter(
         content__pk__in=repository_version.content.values_list('pk', flat=True)
-    )
+    ))
+
+    # Sort content_artifacts based on the name of the package
+    content_artifacts.sort(key=lambda ca: ca.content.cast().name)
 
     for content_artifact in content_artifacts:
         package = content_artifact.content.cast()
@@ -105,28 +107,6 @@ def publish(repository_version_pk):
                     gzip_file.write(packages_content.encode('utf-8'))
                 temp_file_path = temp_file.name
 
-            with open(temp_file_path, 'rb') as temp_file:
-                try:
-                    PublishedMetadata.create_from_file(
-                        file=temp_file,
-                        publication=publication,
-                        relative_path=metadata_file_path
-                    )
-                except IntegrityError:
-                    log.warning(
-                        f"Duplicate metadata entry for path {metadata_file_path} in publication {publication.pk}, updating existing entry."
-                    )
-                    existing_metadata = PublishedMetadata.objects.get(
-                        publication=publication,
-                        relative_path=metadata_file_path
-                    )
-                    existing_metadata.delete()
-                    PublishedMetadata.create_from_file(
-                        file=temp_file,
-                        publication=publication,
-                        relative_path=metadata_file_path
-                    )
-
             # Create a new Artifact for the PACKAGES file
             with open(temp_file_path, 'rb') as temp_file:
                 artifact = Artifact.init_and_validate(temp_file_path)
@@ -149,6 +129,7 @@ def publish(repository_version_pk):
                     publication=publication,
                     content_artifact=content_artifact
                 )
+            # TODO: Handle these cases better
             except IntegrityError:
                 log.warning(
                     f"Duplicate artifact entry for path {metadata_file_path} in publication {publication.pk}, updating existing entry."

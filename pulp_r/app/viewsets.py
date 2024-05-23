@@ -6,16 +6,13 @@ Check `Plugin Writer's Guide`_ for more details.
 """
 
 import logging
-import os
 from gettext import gettext as _
 
-from django.core.files import File
 from django.db import transaction
-from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
-from pulpcore.plugin.models import ContentArtifact, PublishedMetadata
+from pulpcore.plugin.models import ContentArtifact
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -24,12 +21,10 @@ from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.viewsets import RemoteFilter
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from . import models, serializers, tasks
-from .permissions import PackagesPermission
 
 logger = logging.getLogger(__name__)
 
