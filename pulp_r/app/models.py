@@ -107,3 +107,12 @@ class RPublishedMetadata(PublishedMetadata):
 
     class Meta:
         default_related_name = "r_published_metadata"
+        
+class MetadataContent(Content):
+    """
+    A custom Content subclass for the PACKAGES metadata file.
+    """
+    TYPE = 'metadata'
+    
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"

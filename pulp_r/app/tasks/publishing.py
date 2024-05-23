@@ -6,13 +6,14 @@ from gettext import gettext as _
 
 from django.db import IntegrityError
 from pulpcore.plugin.models import (
+    Artifact,
     ContentArtifact,
     PublishedArtifact,
     PublishedMetadata,
     RepositoryVersion,
 )
 
-from pulp_r.app.models import RPublication
+from pulp_r.app.models import MetadataContent, RPublication
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def publish(repository_version_pk):
         packages_content = generate_packages_file_content(repository_version)
 
         # Save the compressed PACKAGES file
-        metadata_file_path = 'src/contrib/PACKAGES.gz'
+        metadata_file_path = 'PACKAGES'
         try:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 with gzip.open(temp_file.name, 'wb') as gzip_file:
@@ -107,6 +108,43 @@ def publish(repository_version_pk):
                         publication=publication,
                         relative_path=metadata_file_path
                     )
+
+            # Create a new Artifact for the PACKAGES file
+            with open(temp_file_path, 'rb') as temp_file:
+                artifact = Artifact.init_and_validate(temp_file_path)
+                artifact.save()
+
+            # Create a MetadataContent instance for the PACKAGES file
+            content = MetadataContent.objects.create()
+
+            # Create a ContentArtifact that associates the PACKAGES file Artifact with the Content
+            content_artifact = ContentArtifact.objects.create(
+                artifact=artifact,
+                content=content,
+                relative_path=metadata_file_path
+            )
+
+            # Create a PublishedArtifact for the PACKAGES file
+            try:
+                PublishedArtifact.objects.create(
+                    relative_path=metadata_file_path,
+                    publication=publication,
+                    content_artifact=content_artifact
+                )
+            except IntegrityError:
+                log.warning(
+                    f"Duplicate artifact entry for path {metadata_file_path} in publication {publication.pk}, updating existing entry."
+                )
+                existing_artifact = PublishedArtifact.objects.get(
+                    publication=publication,
+                    relative_path=metadata_file_path
+                )
+                existing_artifact.delete()
+                PublishedArtifact.objects.create(
+                    relative_path=metadata_file_path,
+                    publication=publication,
+                    content_artifact=content_artifact
+                )
 
             # Clean up the temporary file
             os.unlink(temp_file_path)

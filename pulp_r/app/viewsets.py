@@ -267,7 +267,7 @@ class RDistributionViewSet(core.DistributionViewSet):
     endpoint_name = 'r'
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
-    permission_classes = [PackagesPermission]
+    # permission_classes = [PackagesPermission]
 
     @action(detail=False, methods=['get'], url_path='src/contrib/PACKAGES', url_name='packages')
     def packages(self, request):

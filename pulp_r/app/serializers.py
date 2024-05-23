@@ -106,4 +106,4 @@ class RDistributionSerializer(platform.DistributionSerializer):
         model = models.RDistribution
 
     def get_packages_url(self, obj):
-        return reverse('r-distribution-packages')
+        return f'{obj.base_path}/src/contrib/PACKAGES.gz'
