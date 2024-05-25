@@ -57,10 +57,17 @@ R --version
 BASE_URL="http://localhost:5001/pulp/api/v3/content/r"
 
 # The name of the R package to install
-PACKAGE_NAME="acopula"
+PACKAGE_NAME="BLRShiny"
 
 # R command to install the package from the specified repository
-R_COMMAND="install.packages('${PACKAGE_NAME}', repos='${BASE_URL}')"
+R_COMMAND="options(verbose = TRUE); tryCatch(
+  {
+    install.packages('${PACKAGE_NAME}', repos='${BASE_URL}')
+  },
+  error = function(e) {
+    message(paste('Error installing package', '${PACKAGE_NAME}:', conditionMessage(e)))
+  }
+)"
 
 # Run the R command
 R --vanilla -e "${R_COMMAND}"

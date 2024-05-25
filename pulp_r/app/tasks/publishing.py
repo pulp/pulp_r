@@ -47,12 +47,16 @@ def generate_packages_file_content(repository_version):
 
     for content_artifact in content_artifacts:
         package = content_artifact.content.cast()
-        package_entry = (
-            f"Package: {package.name}\n"
-            f"Version: {package.version}\n"
-            f"Depends: {format_dependencies(package.depends)}\n"
-            f"Imports: {format_dependencies(package.imports)}\n"
-            f"Suggests: {format_dependencies(package.suggests)}\n"
+        package_entry = f"Package: {package.name}\nVersion: {package.version}\n"
+        
+        if package.depends and json.loads(package.depends):
+            package_entry += f"Depends: {format_dependencies(package.depends)}\n"
+        if package.imports and json.loads(package.imports):
+            package_entry += f"Imports: {format_dependencies(package.imports)}\n"
+        if package.suggests and json.loads(package.suggests):
+            package_entry += f"Suggests: {format_dependencies(package.suggests)}\n"
+        
+        package_entry += (
             f"License: {package.license}\n"
             f"MD5sum: {package.md5sum}\n"
             f"NeedsCompilation: {'yes' if package.needs_compilation else 'no'}\n\n"

@@ -28,7 +28,7 @@ To get started with the Pulp R Content Plugin, follow these steps:
    ```
    This script will create a local distribution of CRAN packages and sync it to the Pulp server.
 
-5. (Optional) After the distribution is created, you can download a sample package from your local distribution using the `download_r_package.sh` script:
+5. (Optional [ Note: Step 4 is required before calling this ]) After the distribution is created, you can download a sample package from your local distribution using the `download_r_package.sh` script:
    ```
    ./oci_env/download_r_package.sh
    ```

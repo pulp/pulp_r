@@ -30,7 +30,8 @@ from pulp_r.app.models import RPackage, RRemote, RRepository
 log = logging.getLogger(__name__)
 
 CHUNK_SIZE = 50
-MAX_PACKAGES_SYNC = 1000
+MAX_PACKAGES_SYNC = 2000
+PACKAGES_SYNC_START = 1500
 
 def synchronize(remote_pk, repository_pk, mirror):
     """
@@ -260,15 +261,26 @@ class RFirstStage(Stage):
         packages = packages_info.strip().split('\n\n')
 
         # TODO: Remove temporary limit
-        packages = packages[:MAX_PACKAGES_SYNC]
+        packages = packages[PACKAGES_SYNC_START:MAX_PACKAGES_SYNC]
 
         package_entries = []
-        for package in packages:
+        for package_info in packages:
             entry = {}
-            for line in package.split('\n'):
+            current_key = None
+            for line in package_info.split('\n'):
                 if ': ' in line:
                     key, value = line.split(': ', 1)
                     entry[key] = value.strip()
+                    current_key = key
+                else:
+                    value_line_ends_with_colon = line.endswith(':')
+                    if current_key and value_line_ends_with_colon:
+                        current_key, value = line.split(':', 1)
+                        entry[current_key] = value.strip() if value else ''
+                    else:
+                        # continue to build the multiline value
+                        entry[current_key] += f' {line.strip()}'
+
             base_url = self.remote.url.replace('/src/contrib/PACKAGES.gz', '')
             entry['file_url'] = f"{base_url}/src/contrib/{entry['Package']}_{entry['Version']}.tar.gz"
             entry['file_name'] = f"{entry['Package']}_{entry['Version']}.tar.gz"
