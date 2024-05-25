@@ -30,8 +30,6 @@ from pulp_r.app.models import RPackage, RRemote, RRepository
 log = logging.getLogger(__name__)
 
 CHUNK_SIZE = 50
-MAX_PACKAGES_SYNC = 2000
-PACKAGES_SYNC_START = 1500
 
 def synchronize(remote_pk, repository_pk, mirror):
     """
@@ -259,9 +257,6 @@ class RFirstStage(Stage):
 
         # Parse the PACKAGES file into individual package entries
         packages = packages_info.strip().split('\n\n')
-
-        # TODO: Remove temporary limit
-        packages = packages[PACKAGES_SYNC_START:MAX_PACKAGES_SYNC]
 
         package_entries = []
         for package_info in packages:
