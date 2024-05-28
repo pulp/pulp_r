@@ -56,11 +56,10 @@ upload_package() {
     response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_HOST$repo_href"upload_content/ \
         -H "Content-Type: multipart/form-data" \
         -F "file=@$package_file" \
-        -F "artifact=@$package_file" \
         -F "relative_path=dummy_package/dummy_0.1.0.tar.gz" \
         -F "url=http://example.com/dummy_package/dummy_0.1.0.tar.gz" \
         -F "name=dummy" \
-        -F "version=0.1.1" \
+        -F "version=0.1.5" \
         -F "priority=" \
         -F "summary=A Dummy R Package" \
         -F "description=This is a dummy R package created for testing purposes." \
@@ -95,23 +94,56 @@ publish_repository() {
     repo_version_href=$(curl -u $USERNAME:$PASSWORD -X GET "$repo_href"versions/ \
         | jq -r '.results | sort_by(.number) | last | .pulp_href')
 
-    curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/publications/r/r/" \
+    pub_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/publications/r/r/" \
         -H "Content-Type: application/json" \
-        -d "{\"repository_version\": \"$repo_version_href\"}"
+        -d "{\"repository_version\": \"$repo_version_href\"}")
+
+    pub_task_href=$(echo $pub_response | jq -r '.task')
+    echo "Started publication task: $BASE_URL_HOST$pub_task_href"
+
+    # Wait for publication to complete
+    pub_status=""
+    while [[ "$pub_status" != "completed" ]]; do
+        pub_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$pub_task_href" | jq -r '.state')
+        echo "Publication status: $pub_status"
+        sleep 5
+    done
+
+    # Extract the publication href from the task response
+    pub_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$pub_task_href" | jq -r '.created_resources[0]')
+    echo "Created publication: $pub_href"
+
+    echo $pub_href
 }
 
 # Function to create a distribution
 create_distribution() {
     local pub_href=$1
 
-    curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/distributions/r/r/" \
+    dist_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/distributions/r/r/" \
         -H "Content-Type: application/json" \
         -d "{
               \"name\": \"R Package Distribution\",
               \"base_path\": \"$DISTRIBUTION_BASE_PATH\",
               \"publication\": \"$pub_href\"
-            }"
+            }")
+
+    distribution_task_href=$(echo $dist_response | jq -r '.task')
+    echo "Started distribution task: $BASE_URL_HOST$distribution_task_href"
+
+    # Wait for distribution to complete
+    distribution_status=""
+    while [[ "$distribution_status" != "completed" ]]; do
+        distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.state')
+        echo "Distribution status: $distribution_status"
+        sleep 5
+    done
+
+    # Extract the distribution href from the task response
+    distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.created_resources[0]')
+    echo "Created distribution: $distribution_href"
 }
+
 # Create a dummy R package
 create_dummy_package
 package_file="$temp_dir/dummy_package/dummy_0.1.0.tar.gz"
@@ -141,32 +173,10 @@ echo "Created repository: $repo_href"
 upload_package $package_file $repo_href
 
 # Publish the repository
-pub_response=$(publish_repository "$repo_href")
-pub_href=$(echo $pub_response | jq -r '.pulp_href')
-echo "Published repository: $pub_href"
-
-# Wait for publication to complete
-pub_task_href=$(echo $pub_response | jq -r '.task')
-pub_status=""
-while [[ "$pub_status" != "completed" ]]; do
-    pub_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$pub_task_href" | jq -r '.state')
-    echo "Publication status: $pub_status"
-    sleep 5
-done
+pub_href=$(publish_repository "$repo_href")
 
 # Create a distribution
-dist_response=$(create_distribution $pub_href)
-dist_href=$(echo $dist_response | jq -r '.pulp_href')
-echo "Created distribution: $dist_href"
-
-# Wait for distribution to complete
-distribution_task_href=$(echo $dist_response | jq -r '.task')
-distribution_status=""
-while [[ "$distribution_status" != "completed" ]]; do
-    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.state')
-    echo "Distribution status: $distribution_status"
-    sleep 5
-done
+create_distribution $pub_href
 
 # Install the package from the Pulp repository
 R -e "install.packages('dummy', repos='$PACKAGE_CONTENT_URL')"
