@@ -60,7 +60,7 @@ upload_package() {
         -F "relative_path=dummy_package/dummy_0.1.0.tar.gz" \
         -F "url=http://example.com/dummy_package/dummy_0.1.0.tar.gz" \
         -F "name=dummy" \
-        -F "version=0.1.0" \
+        -F "version=0.1.1" \
         -F "priority=" \
         -F "summary=A Dummy R Package" \
         -F "description=This is a dummy R package created for testing purposes." \

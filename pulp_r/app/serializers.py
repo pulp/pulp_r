@@ -18,11 +18,10 @@ from . import models
 logger = logging.getLogger(__name__)
 
 
-class RPackageSerializer(platform.SingleArtifactContentSerializer):
+class RPackageSerializer(serializers.ModelSerializer):
     """
     A Serializer for RPackage.
     """
-
     name = serializers.CharField(help_text=_("The name of the package"))
     version = serializers.CharField(help_text=_("The version of the package"))
     priority = serializers.CharField(help_text=_("The priority of the package"), allow_blank=True)
@@ -37,11 +36,10 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
     imports = serializers.JSONField(help_text=_("A list of imported packages"))
     suggests = serializers.JSONField(help_text=_("A list of suggested packages"))
     requires = serializers.JSONField(help_text=_("A list of required packages"))
-
     file = serializers.FileField(help_text=_("The package file"), write_only=True)
 
     class Meta:
-        fields = platform.SingleArtifactContentSerializer.Meta.fields + (
+        fields = (
             'name', 'version', 'priority', 'summary', 'description', 'license', 'url', 'md5sum',
             'needs_compilation', 'path', 'depends', 'imports', 'suggests', 'requires', 'file'
         )
@@ -49,9 +47,14 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
 
     def create(self, validated_data):
         file = validated_data.pop('file')
-        artifact = Artifact.init_and_validate(file.name, file)
-        artifact.save()  # Save the artifact to generate its ID
-        package = models.RPackage.objects.create(artifact=artifact, **validated_data)
+        
+        # Initialize an in-memory Artifact from the provided file
+        artifact = Artifact.init_and_validate(file)
+        artifact.save()
+
+        package = models.RPackage.objects.create(**validated_data)
+        
+        # Create a ContentArtifact to associate the Package with the Artifact
         ContentArtifact.objects.create(
             artifact=artifact,
             content=package,

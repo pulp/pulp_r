@@ -46,7 +46,6 @@ class RPackageViewSet(core.ContentViewSet):
     """
     A ViewSet for RPackage.
     """
-
     endpoint_name = 'packages'
     queryset = models.RPackage.objects.all()
     serializer_class = serializers.RPackageSerializer
@@ -60,16 +59,7 @@ class RPackageViewSet(core.ContentViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        artifact = serializer.validated_data.pop('_artifact')
-        content = serializer.save(file=artifact)
-
-        if content.pk:
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=content,
-                relative_path=content.name + '_' + content.version + '.tar.gz'
-            )
+        serializer.save()
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -178,11 +168,13 @@ class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
         serializer.is_valid(raise_exception=True)
         package = serializer.save()
 
-        # Associate the package with the repository
-        repository.content.add(package)
+        # Create a new RepositoryVersion
+        with repository.new_version() as new_version:
+            # Associate the package with the new RepositoryVersion
+            new_version.add_content(models.RPackage.objects.filter(pk=package.pk))
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+    
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
         summary="Sync from remote",
