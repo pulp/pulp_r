@@ -50,7 +50,8 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
     def create(self, validated_data):
         file = validated_data.pop('file')
         artifact = Artifact.init_and_validate(file.name, file)
-        package = models.RPackage.objects.create(**validated_data)
+        artifact.save()  # Save the artifact to generate its ID
+        package = models.RPackage.objects.create(artifact=artifact, **validated_data)
         ContentArtifact.objects.create(
             artifact=artifact,
             content=package,
