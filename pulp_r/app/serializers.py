@@ -10,6 +10,7 @@ from gettext import gettext as _
 
 from django.urls import reverse
 from pulpcore.plugin import serializers as platform
+from pulpcore.plugin.models import Artifact, ContentArtifact
 from rest_framework import serializers
 
 from . import models
@@ -37,12 +38,25 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
     suggests = serializers.JSONField(help_text=_("A list of suggested packages"))
     requires = serializers.JSONField(help_text=_("A list of required packages"))
 
+    file = serializers.FileField(help_text=_("The package file"), write_only=True)
+
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields + (
             'name', 'version', 'priority', 'summary', 'description', 'license', 'url', 'md5sum',
-            'needs_compilation', 'path', 'depends', 'imports', 'suggests', 'requires'
+            'needs_compilation', 'path', 'depends', 'imports', 'suggests', 'requires', 'file'
         )
         model = models.RPackage
+
+    def create(self, validated_data):
+        file = validated_data.pop('file')
+        artifact = Artifact.init_and_validate(file.name, file)
+        package = models.RPackage.objects.create(**validated_data)
+        ContentArtifact.objects.create(
+            artifact=artifact,
+            content=package,
+            relative_path=file.name
+        )
+        return package
 
 
 class RRemoteSerializer(platform.RemoteSerializer):

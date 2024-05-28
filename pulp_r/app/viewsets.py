@@ -170,6 +170,18 @@ class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
     queryset = models.RRepository.objects.all()
     serializer_class = serializers.RRepositorySerializer
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+    
+    @action(detail=True, methods=["post"], serializer_class=serializers.RPackageSerializer)
+    def upload_content(self, request, pk):
+        repository = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        package = serializer.save()
+
+        # Associate the package with the repository
+        repository.content.add(package)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
