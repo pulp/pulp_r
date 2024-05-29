@@ -1,10 +1,3 @@
-"""
-Check `Plugin Writer's Guide`_ for more details.
-
-.. _Plugin Writer's Guide:
-    https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
-"""
-
 import logging
 from gettext import gettext as _
 
@@ -12,7 +5,6 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
-from pulpcore.plugin.models import ContentArtifact
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -173,7 +165,13 @@ class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
             # Associate the package with the new RepositoryVersion
             new_version.add_content(models.RPackage.objects.filter(pk=package.pk))
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # Launch the publishing task
+        publication_task = dispatch(
+            tasks.publish,
+            kwargs={'repository_version_pk': str(new_version.pk)}
+        )
+
+        return core.OperationPostponedResponse(publication_task, request)
     
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
