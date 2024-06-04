@@ -63,7 +63,7 @@ upload_package() {
         -F "relative_path=$package_name/${package_name}_0.1.0.tar.gz" \
         -F "url=http://example.com/$package_name/${package_name}_0.1.0.tar.gz" \
         -F "name=$package_name" \
-        -F "version=0.1.1" \
+        -F "version=0.1.0" \
         -F "priority=" \
         -F "summary=A Dummy R Package" \
         -F "description=This is a dummy R package created for testing purposes." \
