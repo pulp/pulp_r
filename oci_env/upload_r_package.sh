@@ -7,7 +7,7 @@ USERNAME="admin"
 PASSWORD="password"
 BASE_URL_V3="http://localhost:5001/pulp/api/v3"
 BASE_URL_HOST="http://localhost:5001"
-DISTRIBUTION_BASE_PATH="r/src/contrib"
+DISTRIBUTION_BASE_PATH="tenantx/r/src/contrib"
 PACKAGE_CONTENT_URL="$BASE_URL_HOST/$DISTRIBUTION_BASE_PATH"
 
 # Create a temporary directory for the dummy package
@@ -137,30 +137,43 @@ fi
 echo "Created publication: $pub_href"
 
 
-# Create a distribution from the publication
-dist_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/distributions/r/r/" \
-    -H "Content-Type: application/json" \
-    -d "{
-          \"name\": \"CRAN Distribution $(date +%s)\",
-          \"base_path\": \"r/src/contrib\",
-          \"publication\": \"$pub_href\"
-        }")
+# Check if a distribution with the same base_path already exists
+existing_dist=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_V3/distributions/r/r/?base_path=r/src/contrib" | jq -r '.results[0].pulp_href')
+
+if [[ $existing_dist != "null" ]]; then
+    # Update the existing distribution
+    dist_response=$(curl -u $USERNAME:$PASSWORD -X PATCH "$BASE_URL_HOST$existing_dist" \
+        -H "Content-Type: application/json" \
+        -d "{
+              \"publication\": \"$pub_href\"
+            }")
+else
+    # Create a new distribution
+    dist_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/distributions/r/r/" \
+        -H "Content-Type: application/json" \
+        -d "{
+              \"name\": \"CRAN Distribution\",
+              \"base_path\": \"r/src/contrib\",
+              \"publication\": \"$pub_href\"
+            }")
+fi
 distribution_task_href=$(echo $dist_response | jq -r '.task')
+echo "Started distribution task: $BASE_URL_HOST$distribution_task_href"
 
 # Wait for distribution to complete
 distribution_status=""
 while [[ "$distribution_status" != "completed" ]]; do
-    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_task_href" | jq -r '.state')
+    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.state')
     echo "Distribution status: $distribution_status"
     sleep 5
 done
 
 # Extract the distribution href from the task response
-distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_task_href" | jq -r '.created_resources[0]')
+distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.created_resources[0]')
 echo "Created distribution: $distribution_href"
 
 # Get distribution details
-curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_href"
+curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_href"
 
 # Install the package from the Pulp repository
 R -e "install.packages('$package_name', repos='$PACKAGE_CONTENT_URL')"

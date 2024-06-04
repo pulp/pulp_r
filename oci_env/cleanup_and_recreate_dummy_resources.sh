@@ -6,12 +6,12 @@ set -e
 USERNAME="admin"
 PASSWORD="password"
 BASE_URL_V3="http://localhost:5001/pulp/api/v3"
-BASE_ULR_HOST="http://localhost:5001"
+BASE_URL_HOST="http://localhost:5001"
 
 # Function to delete a resource
 delete_resource() {
     local resource_url=$1
-    local delete_url="$BASE_ULR_HOST$resource_url"
+    local delete_url="$BASE_URL_HOST$resource_url"
     echo "Deleting $delete_url"
     curl -u $USERNAME:$PASSWORD -X DELETE "$delete_url"
 }
@@ -85,19 +85,19 @@ repo_href=$(echo $repo_response | jq -r '.pulp_href')
 echo "Created repository: $repo_href"
 
 # Sync repository
-sync_response=$(curl -u $USERNAME:$PASSWORD -X POST "${BASE_ULR_HOST}${repo_href}sync/" \
+sync_response=$(curl -u $USERNAME:$PASSWORD -X POST "${BASE_URL_HOST}${repo_href}sync/" \
     -H "Content-Type: application/json" \
     -d "{
           \"remote\": \"$remote_href\",
           \"mirror\": true
         }")
 sync_task=$(echo $sync_response | jq -r '.task')
-echo "Started sync task: $BASE_ULR_HOST$sync_task"
+echo "Started sync task: $BASE_URL_HOST$sync_task"
 
 # Wait for sync to complete
 sync_status=""
 while [[ "$sync_status" != "completed" ]]; do
-    sync_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$sync_task" | jq -r '.state')
+    sync_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$sync_task" | jq -r '.state')
     echo "Sync status: $sync_status"
     sleep 5
 done
@@ -109,18 +109,18 @@ pub_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/publications/r/
           \"repository_version\": \"${repo_href}versions/1/\"
         }")
 pub_task_href=$(echo $pub_response | jq -r '.task')
-echo "Started publication task: $BASE_ULR_HOST$pub_task_href"
+echo "Started publication task: $BASE_URL_HOST$pub_task_href"
 
 # Wait for publication to complete
 pub_status=""
 while [[ "$pub_status" != "completed" ]]; do
-    pub_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$pub_task_href" | jq -r '.state')
+    pub_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$pub_task_href" | jq -r '.state')
     echo "Publication status: $pub_status"
     sleep 5
 done
 
 # Extract the publication href from the task response
-pub_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$pub_task_href" | jq -r '.created_resources[0]')
+pub_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$pub_task_href" | jq -r '.created_resources[0]')
 echo "Created publication: $pub_href"
 
 # Create a distribution from the publication
@@ -136,14 +136,14 @@ distribution_task_href=$(echo $dist_response | jq -r '.task')
 # Wait for distribution to complete
 distribution_status=""
 while [[ "$distribution_status" != "completed" ]]; do
-    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_task_href" | jq -r '.state')
+    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.state')
     echo "Distribution status: $distribution_status"
     sleep 5
 done
 
 # Extract the distribution href from the task response
-distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_task_href" | jq -r '.created_resources[0]')
+distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.created_resources[0]')
 echo "Created distribution: $distribution_href"
 
 # Get distribution details
-curl -u $USERNAME:$PASSWORD -X GET "$BASE_ULR_HOST$distribution_href"
+curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_href"

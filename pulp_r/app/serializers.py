@@ -125,3 +125,10 @@ class RDistributionSerializer(platform.DistributionSerializer):
 
     def get_packages_url(self, obj):
         return f'{obj.base_path}/src/contrib/PACKAGES.gz'
+
+    def validate(self, data):
+        try:
+            return super().validate(data)
+        except Exception as e:
+            logger.error(f"Validation error in RDistributionSerializer: {str(e)}")
+            raise

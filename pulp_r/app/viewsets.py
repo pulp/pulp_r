@@ -265,3 +265,10 @@ class RDistributionViewSet(core.DistributionViewSet):
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error creating distribution: {str(e)}")
+            raise
