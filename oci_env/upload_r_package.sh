@@ -8,7 +8,8 @@ PASSWORD="password"
 BASE_URL_V3="http://localhost:5001/pulp/api/v3"
 BASE_URL_HOST="http://localhost:5001"
 DISTRIBUTION_BASE_PATH="tenantx/r/src/contrib"
-PACKAGE_CONTENT_URL="$BASE_URL_HOST/$DISTRIBUTION_BASE_PATH"
+CONTENT_INDEX_PATH="content/tenantx/r"
+PACKAGE_CONTENT_URL="$BASE_URL_V3/$CONTENT_INDEX_PATH"
 
 # Create a temporary directory for the dummy package
 temp_dir=$(mktemp -d)
@@ -62,7 +63,7 @@ upload_package() {
         -F "relative_path=$package_name/${package_name}_0.1.0.tar.gz" \
         -F "url=http://example.com/$package_name/${package_name}_0.1.0.tar.gz" \
         -F "name=$package_name" \
-        -F "version=0.1.0" \
+        -F "version=0.1.1" \
         -F "priority=" \
         -F "summary=A Dummy R Package" \
         -F "description=This is a dummy R package created for testing purposes." \
@@ -153,7 +154,7 @@ else
         -H "Content-Type: application/json" \
         -d "{
               \"name\": \"CRAN Distribution\",
-              \"base_path\": \"r/src/contrib\",
+              \"base_path\": \"$DISTRIBUTION_BASE_PATH\",
               \"publication\": \"$pub_href\"
             }")
 fi
@@ -163,13 +164,27 @@ echo "Started distribution task: $BASE_URL_HOST$distribution_task_href"
 # Wait for distribution to complete
 distribution_status=""
 while [[ "$distribution_status" != "completed" ]]; do
-    distribution_status=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.state')
+    task_response=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href")
+    distribution_status=$(echo "$task_response" | jq -r '.state')
     echo "Distribution status: $distribution_status"
+    echo "Task response: $task_response"
     sleep 5
 done
 
-# Extract the distribution href from the task response
-distribution_href=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_HOST$distribution_task_href" | jq -r '.created_resources[0]')
+# Extract the distribution href from the task response or use the existing_dist href
+if [[ $existing_dist != "null" ]]; then
+    distribution_href=$existing_dist
+else
+    distribution_href=$(echo "$task_response" | jq -r '.created_resources[0]')
+fi
+
+echo "Distribution href: $distribution_href"
+
+if [[ "$distribution_href" == "null" ]]; then
+    echo "Failed to retrieve the distribution href."
+    exit 1
+fi
+
 echo "Created distribution: $distribution_href"
 
 # Get distribution details
