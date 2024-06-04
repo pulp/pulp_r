@@ -10,6 +10,7 @@ from gettext import gettext as _
 
 from django.urls import reverse
 from pulpcore.plugin import serializers as platform
+from pulpcore.plugin.models import Artifact, ContentArtifact
 from rest_framework import serializers
 
 from . import models
@@ -17,11 +18,10 @@ from . import models
 logger = logging.getLogger(__name__)
 
 
-class RPackageSerializer(platform.SingleArtifactContentSerializer):
+class RPackageSerializer(serializers.ModelSerializer):
     """
     A Serializer for RPackage.
     """
-
     name = serializers.CharField(help_text=_("The name of the package"))
     version = serializers.CharField(help_text=_("The version of the package"))
     priority = serializers.CharField(help_text=_("The priority of the package"), allow_blank=True)
@@ -36,13 +36,31 @@ class RPackageSerializer(platform.SingleArtifactContentSerializer):
     imports = serializers.JSONField(help_text=_("A list of imported packages"))
     suggests = serializers.JSONField(help_text=_("A list of suggested packages"))
     requires = serializers.JSONField(help_text=_("A list of required packages"))
+    file = serializers.FileField(help_text=_("The package file"), write_only=True)
 
     class Meta:
-        fields = platform.SingleArtifactContentSerializer.Meta.fields + (
+        fields = (
             'name', 'version', 'priority', 'summary', 'description', 'license', 'url', 'md5sum',
-            'needs_compilation', 'path', 'depends', 'imports', 'suggests', 'requires'
+            'needs_compilation', 'path', 'depends', 'imports', 'suggests', 'requires', 'file'
         )
         model = models.RPackage
+
+    def create(self, validated_data):
+        file = validated_data.pop('file')
+        
+        # Initialize an in-memory Artifact from the provided file
+        artifact = Artifact.init_and_validate(file)
+        artifact.save()
+
+        package = models.RPackage.objects.create(**validated_data)
+        
+        # Create a ContentArtifact to associate the Package with the Artifact
+        ContentArtifact.objects.create(
+            artifact=artifact,
+            content=package,
+            relative_path=file.name
+        )
+        return package
 
 
 class RRemoteSerializer(platform.RemoteSerializer):
@@ -107,3 +125,10 @@ class RDistributionSerializer(platform.DistributionSerializer):
 
     def get_packages_url(self, obj):
         return f'{obj.base_path}/src/contrib/PACKAGES.gz'
+
+    def validate(self, data):
+        try:
+            return super().validate(data)
+        except Exception as e:
+            logger.error(f"Validation error in RDistributionSerializer: {str(e)}")
+            raise

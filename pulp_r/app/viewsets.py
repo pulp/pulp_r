@@ -1,10 +1,3 @@
-"""
-Check `Plugin Writer's Guide`_ for more details.
-
-.. _Plugin Writer's Guide:
-    https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
-"""
-
 import logging
 from gettext import gettext as _
 
@@ -12,7 +5,6 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
-from pulpcore.plugin.models import ContentArtifact
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -46,7 +38,6 @@ class RPackageViewSet(core.ContentViewSet):
     """
     A ViewSet for RPackage.
     """
-
     endpoint_name = 'packages'
     queryset = models.RPackage.objects.all()
     serializer_class = serializers.RPackageSerializer
@@ -60,16 +51,7 @@ class RPackageViewSet(core.ContentViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        artifact = serializer.validated_data.pop('_artifact')
-        content = serializer.save(file=artifact)
-
-        if content.pk:
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=content,
-                relative_path=content.name + '_' + content.version + '.tar.gz'
-            )
+        serializer.save()
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -170,7 +152,27 @@ class RRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
     queryset = models.RRepository.objects.all()
     serializer_class = serializers.RRepositorySerializer
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+    
+    @action(detail=True, methods=["post"], serializer_class=serializers.RPackageSerializer)
+    def upload_content(self, request, pk):
+        repository = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        package = serializer.save()
 
+        # Create a new RepositoryVersion
+        with repository.new_version() as new_version:
+            # Associate the package with the new RepositoryVersion
+            new_version.add_content(models.RPackage.objects.filter(pk=package.pk))
+
+        # Launch the publishing task
+        publication_task = dispatch(
+            tasks.publish,
+            kwargs={'repository_version_pk': str(new_version.pk)}
+        )
+
+        return core.OperationPostponedResponse(publication_task, request)
+    
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
         summary="Sync from remote",
@@ -263,3 +265,10 @@ class RDistributionViewSet(core.DistributionViewSet):
     queryset = models.RDistribution.objects.all()
     serializer_class = serializers.RDistributionSerializer
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error creating distribution: {str(e)}")
+            raise
