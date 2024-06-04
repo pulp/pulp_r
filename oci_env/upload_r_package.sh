@@ -7,8 +7,8 @@ USERNAME="admin"
 PASSWORD="password"
 BASE_URL_V3="http://localhost:5001/pulp/api/v3"
 BASE_URL_HOST="http://localhost:5001"
-DISTRIBUTION_BASE_PATH="tenantx/r/src/contrib"
-CONTENT_INDEX_PATH="content/tenantx/r"
+DISTRIBUTION_BASE_PATH="r/tenantx/src/contrib"
+CONTENT_INDEX_PATH="content/r/tenantx"
 PACKAGE_CONTENT_URL="$BASE_URL_V3/$CONTENT_INDEX_PATH"
 
 # Create a temporary directory for the dummy package
@@ -139,7 +139,7 @@ echo "Created publication: $pub_href"
 
 
 # Check if a distribution with the same base_path already exists
-existing_dist=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_V3/distributions/r/r/?base_path=r/src/contrib" | jq -r '.results[0].pulp_href')
+existing_dist=$(curl -u $USERNAME:$PASSWORD -X GET "$BASE_URL_V3/distributions/r/r/?base_path=$DISTRIBUTION_BASE_PATH" | jq -r '.results[0].pulp_href')
 
 if [[ $existing_dist != "null" ]]; then
     # Update the existing distribution
@@ -153,7 +153,7 @@ else
     dist_response=$(curl -u $USERNAME:$PASSWORD -X POST "$BASE_URL_V3/distributions/r/r/" \
         -H "Content-Type: application/json" \
         -d "{
-              \"name\": \"CRAN Distribution\",
+              \"name\": \"CRAN Distribution tenantx\",
               \"base_path\": \"$DISTRIBUTION_BASE_PATH\",
               \"publication\": \"$pub_href\"
             }")
