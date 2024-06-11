@@ -26,8 +26,6 @@ from pulp_r.tests.functional.utils import (
 from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-# Implement sync support before enabling this test.
-@unittest.skip("FIXME: plugin writer action required")
 class BasicSyncTestCase(unittest.TestCase):
     """Sync a repository with the r plugin."""
 
@@ -89,8 +87,6 @@ class BasicSyncTestCase(unittest.TestCase):
         self.assertDictEqual(get_content_summary(repo.to_dict()), R_FIXTURE_SUMMARY)
 
 
-# Implement sync support before enabling this test.
-@unittest.skip("FIXME: plugin writer action required")
 class SyncInvalidTestCase(unittest.TestCase):
     """Sync a repository with a given url on the remote."""
 

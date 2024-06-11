@@ -27,7 +27,6 @@ from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F
 
 
 # Implement sync support before enabling this test.
-@unittest.skip("FIXME: plugin writer action required")
 class SyncDownloadPolicyTestCase(unittest.TestCase):
     """Sync a repository with different download policies.
 
