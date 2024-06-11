@@ -10,7 +10,6 @@ from pulp_r.app.serializers import RContentSerializer
 # Fill data with sufficient information to create RContent
 # Provide sufficient parameters to create the RContent object
 # Depending on the base class of the serializer, provide either "_artifact" or "_artifacts"
-@unittest.skip("FIXME: plugin writer action required")
 class TestRContentSerializer(TestCase):
     """Test RContentSerializer."""
 

@@ -53,7 +53,6 @@ def gen_r_remote(url=R_FIXTURE_URL, **kwargs):
 
     :param url: The URL of an external content source.
     """
-    # FIXME: Add any fields specific to a r remote here
     return gen_remote(url, **kwargs)
 
 
@@ -82,8 +81,23 @@ def gen_r_content_attrs(artifact):
     :param artifact: A dict of info about the artifact.
     :returns: A semi-random dict for use in creating a content unit.
     """
-    # FIXME: Add content specific metadata here.
-    return {"_artifact": artifact["pulp_href"]}
+    return {
+        "name": "test_package",
+        "version": "1.0.0",
+        "priority": "",
+        "summary": "Test Package",
+        "description": "A test R package",
+        "license": "MIT",
+        "url": "https://example.com",
+        "md5sum": "",
+        "needs_compilation": False,
+        "path": "",
+        "depends": [],
+        "imports": [],
+        "suggests": [],
+        "requires": [],
+        "file": artifact,
+    }
 
 
 def populate_pulp(cfg, url=R_FIXTURE_URL):

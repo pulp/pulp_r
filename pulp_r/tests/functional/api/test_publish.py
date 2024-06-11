@@ -5,7 +5,7 @@ from random import choice
 
 from pulp_smash import config
 from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, modify_repo
+from pulp_smash.pulp3.utils import gen_repo, get_versions
 from pulpcore.client.pulp_r import (
     PublicationsRApi,
     RemotesRApi,
@@ -15,7 +15,6 @@ from pulpcore.client.pulp_r import (
 )
 from pulpcore.client.pulp_r.exceptions import ApiException
 
-from pulp_r.tests.functional.constants import R_CONTENT_NAME
 from pulp_r.tests.functional.utils import (
     gen_r_client,
     gen_r_remote,
@@ -23,8 +22,6 @@ from pulp_r.tests.functional.utils import (
 from pulp_r.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-# Implement sync and publish support before enabling this test.
-@unittest.skip("FIXME: plugin writer action required")
 class PublishAnyRepoVersionTestCase(unittest.TestCase):
     """Test whether a particular repository version can be published.
 
