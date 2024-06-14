@@ -69,7 +69,8 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """Update a remote using HTTP PATCH."""
         body = _gen_verbose_remote()
         response = self.remote_api.partial_update(self.remote.pulp_href, body)
-        monitor_task(response.task)
+        if hasattr(response, 'task'):
+            monitor_task(response.task)
         for key in ("username", "password"):
             del body[key]
         type(self).remote = self.remote_api.read(self.remote.pulp_href)
@@ -82,7 +83,8 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """Update a remote using HTTP PUT."""
         body = _gen_verbose_remote()
         response = self.remote_api.update(self.remote.pulp_href, body)
-        monitor_task(response.task)
+        if hasattr(response, 'task'):
+            monitor_task(response.task)
         for key in ("username", "password"):
             del body[key]
         type(self).remote = self.remote_api.read(self.remote.pulp_href)
@@ -94,7 +96,8 @@ class CRUDRemotesTestCase(unittest.TestCase):
     def test_05_delete(self):
         """Delete a remote."""
         response = self.remote_api.delete(self.remote.pulp_href)
-        monitor_task(response.task)
+        if hasattr(response, 'task'):
+            monitor_task(response.task)
         with self.assertRaises(ApiException):
             self.remote_api.read(self.remote.pulp_href)
 
@@ -178,7 +181,8 @@ class RemoteDownloadPolicyTestCase(unittest.TestCase):
         response = self.remote_api.partial_update(
             self.remote["pulp_href"], {"policy": changed_policy}
         )
-        monitor_task(response.task)
+        if hasattr(response, 'task'):
+            monitor_task(response.task)
         self.remote.update(self.remote_api.read(self.remote["pulp_href"]).to_dict())
         self.assertEqual(self.remote["policy"], changed_policy, self.remote)
 
