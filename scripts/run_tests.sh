@@ -58,7 +58,7 @@ if [ ! -d "../pulp-openapi-generator" ]; then
 fi
 
 # Copy environment file
-cp ./compose.env ../scripts/compose.env
+cp ./compose.env ../oci_env/compose.env
 cd ../oci_env || exit
 
 # Create virtual environment if it doesn't exist
@@ -75,34 +75,11 @@ print_message info "Installing required packages..."
 pip3 install -e client
 pip install pulp-smash
 
-# Tear down existing services and volumes
-print_message info "Tearing down existing services and volumes..."
-oci-env compose down --volumes
-
-# Build images and start services
-print_message info "Building images and starting services..."
-oci-env compose build
-oci-env compose up -d
-
-# Tail logs from containers. This will follow the log output.
-oci-env compose logs -f &
-
-# Wait for the database connection to establish
-print_message info "Waiting for the database connection to establish..."
-while true; do
-    result=$(curl -s http://localhost:8000/pulp/api/v3/status/ | jq -r .database_connection.connected)
-    print_message info "Server Response - database connected: $result"
-    if [ "$result" = "true" ]; then
-        break
-    fi
-    sleep 5
-done
-
 # Remove podman from path before running these commands
 PATH=$(echo $PATH | awk -F: '{$NF=""}1' OFS=:)
 
 print_message info "Generating client for pulpcore..."
-oci-env generate-client -i pulpcore
+oci-env generate-client -i pulcore
 
 print_message info "Generating client for pulp_r..."
 oci-env generate-client -i pulp_r
@@ -112,7 +89,7 @@ print_message info "Running functional tests for the pulp_r plugin..."
 oci-env test -ip pulp_r functional
 
 # Example to show how to access API with authentication (commented out)
-# curl -u admin:password http://localhost:8000/pulp/api/v3/status/ | jq '.'
+# curl -u admin:password http://localhost:8080/pulp/api/v3/status/ | jq '.'
 
 # oci-env generate-client -i
 # oci-env generate-client -i pulpcore

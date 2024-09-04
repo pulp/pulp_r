@@ -15,5 +15,8 @@ dev-download-r-package: dev-sync-cran
 dev-upload-r-package: bootstrap-server
 	./scripts/upload_r_package.sh
 
+generate-pulp-r-cli:
+	./scripts/generate_pulp_r_cli.sh
+
 oci-env-setup:
 	./scripts/oci_env_setup.sh
