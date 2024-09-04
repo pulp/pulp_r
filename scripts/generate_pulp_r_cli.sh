@@ -5,7 +5,7 @@ set -e
 # The openapi generator expects the PULP_API to be on port 24817
 export PULP_API="http://localhost:24817"
 export PULP_API_ROOT="/pulp/"
-export COMPONENT="core" # or "pulp_r"
+export COMPONENT="r"
 
 # Backup the original compose.yml
 cp compose.yml compose.yml.bak
@@ -52,14 +52,14 @@ pip install packaging
 echo "Generating the Python bindings for ${COMPONENT}"
 
 # Generate the Python bindings for the component
-./generate.sh ${COMPONENT} python
+./generate.sh pulp_${COMPONENT} python
 
 # Create a clean directory for the generated client
 rm -rf "../pulp_r/${COMPONENT}_client"
 mkdir -p "../pulp_r/${COMPONENT}_client"
 
 # Copy the generated client to the new directory
-cp -R "${COMPONENT}-client/"* "../pulp_r/${COMPONENT}_client/"
+cp -R "pulp_${COMPONENT}-client/"* "../pulp_r/${COMPONENT}_client/"
 
 echo "${COMPONENT} CLI has been generated and copied to the pulp_r/${COMPONENT}_client directory."
 
@@ -73,8 +73,8 @@ echo "${COMPONENT} CLI package has been installed."
 
 # Provide instructions for using the new CLI
 echo "You can now use the ${COMPONENT} CLI. Here are some example commands:"
-echo "python -m pulpcore.client.${COMPONENT}.api_client --help"
-echo "python -m pulpcore.client.${COMPONENT}.api_client list_repositories"
+echo "python -c 'from pulpcore.client.pulp_r import api_client; print(api_client.__doc__)'"
+echo "python -c 'from pulpcore.client.pulp_r import RepositoriesRApi; print(RepositoriesRApi.__doc__)'"
 
 # Change back to the original directory
 cd ../../pulp_r
@@ -86,3 +86,40 @@ docker compose down
 docker compose down -v
 
 echo "Cleanup completed."
+
+echo "CLI generation completed successfully."
+
+# Example usage of the pulp_r CLI
+echo "Example usage of the pulp_r CLI:"
+
+# Activate the virtual environment
+source ../pulp-openapi-generator/temp_venv/bin/activate
+
+# Print API client documentation
+python -c 'from pulpcore.client.pulp_r import api_client; print(api_client.__doc__)'
+
+# Print RepositoriesRApi documentation
+python -c 'from pulpcore.client.pulp_r import RepositoriesRApi; print(RepositoriesRApi.__doc__)'
+
+# Example of creating a repository using the CLI
+echo "Creating a dummy repository using the CLI:"
+python -c '
+from pulpcore.client.pulp_r import ApiClient, Configuration, RepositoriesRApi
+from pulpcore.client.pulp_r.models import RRRepository
+
+config = Configuration(host="http://localhost:24817")
+config.username = "admin"
+config.password = "password"
+client = ApiClient(configuration=config)
+api_instance = RepositoriesRApi(client)
+
+try:
+    repo = RRRepository(name="CLI Dummy Repository", description="Created via CLI")
+    result = api_instance.create(repo)
+    print(f"Created repository: {result.pulp_href}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+'
+
+# Deactivate the virtual environment
+deactivate
