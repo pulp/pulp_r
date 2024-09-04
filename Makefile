@@ -3,14 +3,17 @@
 bootstrap-server:
 	./run.sh
 
-run-tests:
-	./oci_env/run_tests.sh
+dev-sync-cran: bootstrap-server
+	./scripts/cleanup_and_recreate_dummy_resources.sh
 
-oci-env-pulp-exec:
-	cd ../oci_env && source venv/bin/activate && oci-env compose exec pulp bash
+dev-run-tests: bootstrap-server
+	./scripts/run_tests.sh
 
-oci-env-pulp-makemigrations:
-	cd ../oci_env && source venv/bin/activate && oci-env compose exec pulp django-admin makemigrations
+dev-download-r-package: dev-sync-cran
+	./scripts/download_r_package.sh
 
-oci-env-pulp-migrate:
-	cd ../oci_env && source venv/bin/activate && oci-env compose exec pulp django-admin migrate
+dev-upload-r-package: bootstrap-server
+	./scripts/upload_r_package.sh
+
+oci-env-setup:
+	./scripts/oci_env_setup.sh

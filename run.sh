@@ -12,7 +12,7 @@ trap cleanup SIGINT SIGTERM
 
 docker compose down
 
-docker compose up --build -d
+docker compose up -d
 
 is_pulp_ready() {
     curl -s -f http://localhost:8080/pulp/api/v3/status/ > /dev/null
@@ -30,9 +30,3 @@ done
 temp_dir=$(mktemp -d)
 
 docker compose exec -it pulp bash -c 'pulpcore-manager reset-admin-password --password password'
-
-# Set up CRAN server and sync packages
-./oci_env/cleanup_and_recreate_dummy_resources.sh
-
-# Clean up
-cleanup

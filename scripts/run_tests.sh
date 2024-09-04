@@ -29,8 +29,8 @@ print_message() {
 # Clean up any existing Docker/Podman processes and logs
 cleanup() {
     print_message info "Cleaning up Docker/Podman processes and logs..."
-    docker-compose down --volumes --remove-orphans
-    docker-compose logs > docker_logs.txt
+    docker compose down --volumes --remove-orphans
+    docker compose logs > docker_logs.txt
     print_message info "Logs saved to docker_logs.txt"
 }
 
@@ -58,7 +58,7 @@ if [ ! -d "../pulp-openapi-generator" ]; then
 fi
 
 # Copy environment file
-cp ./compose.env ../oci_env/compose.env
+cp ./compose.env ../scripts/compose.env
 cd ../oci_env || exit
 
 # Create virtual environment if it doesn't exist
