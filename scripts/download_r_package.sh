@@ -54,7 +54,7 @@ fi
 R --version
 
 # Define the base URL for the CRAN Distribution
-BASE_URL="http://localhost:8000/pulp/api/v3/content/r"
+BASE_URL="http://localhost:8080/pulp/api/v3/content/r"
 
 # The name of the R package to install
 PACKAGE_NAME="ggplot2"
