@@ -5,8 +5,8 @@ set -e
 # Credentials
 USERNAME="admin"
 PASSWORD="password"
-BASE_URL_V3="http://localhost:5001/pulp/api/v3"
-BASE_URL_HOST="http://localhost:5001"
+BASE_URL_V3="http://localhost:8000/pulp/api/v3"
+BASE_URL_HOST="http://localhost:8000"
 DISTRIBUTION_BASE_PATH="r/tenantx/src/contrib"
 CONTENT_INDEX_PATH="content/r/tenantx"
 PACKAGE_CONTENT_URL="$BASE_URL_V3/$CONTENT_INDEX_PATH"

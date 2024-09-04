@@ -90,7 +90,7 @@ oci-env compose logs -f &
 # Wait for the database connection to establish
 print_message info "Waiting for the database connection to establish..."
 while true; do
-    result=$(curl -s http://localhost:5001/pulp/api/v3/status/ | jq -r .database_connection.connected)
+    result=$(curl -s http://localhost:8000/pulp/api/v3/status/ | jq -r .database_connection.connected)
     print_message info "Server Response - database connected: $result"
     if [ "$result" = "true" ]; then
         break
@@ -112,7 +112,7 @@ print_message info "Running functional tests for the pulp_r plugin..."
 oci-env test -ip pulp_r functional
 
 # Example to show how to access API with authentication (commented out)
-# curl -u admin:password http://localhost:5001/pulp/api/v3/status/ | jq '.'
+# curl -u admin:password http://localhost:8000/pulp/api/v3/status/ | jq '.'
 
 # oci-env generate-client -i
 # oci-env generate-client -i pulpcore

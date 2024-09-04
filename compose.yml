@@ -1,0 +1,36 @@
+services:
+  pulp:
+    build:
+      context: .
+    ports:
+      - "8080:80"
+    volumes:
+      - "pulp_certs:/etc/pulp/certs"
+      - "pulp:/var/lib/pulp"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_PASSWORD=password
+      - CONTENT_ORIGIN=http://localhost:8080
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: pulp
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pulp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    volumes:
+      - redis_data:/data
+
+volumes:
+  pulp:
+  pulp_certs:
+  postgres_data:
+  redis_data:

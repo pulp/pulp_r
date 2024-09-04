@@ -5,8 +5,8 @@ set -e
 # Credentials
 USERNAME="admin"
 PASSWORD="password"
-BASE_URL_V3="http://localhost:5001/pulp/api/v3"
-BASE_URL_HOST="http://localhost:5001"
+BASE_URL_V3="http://localhost:8080/pulp/api/v3"
+BASE_URL_HOST="http://localhost:8080"
 
 # Function to delete a resource
 delete_resource() {
