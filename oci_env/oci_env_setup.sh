@@ -51,10 +51,10 @@ oci-env compose up
 # oci-env compose exec pulp django-admin migrate
 
 # Example to show how to access API with authentication (commented out)
-# curl -u admin:password http://localhost:5001/pulp/api/v3/status/ | jq '.'
+# curl -u admin:password http://localhost:8000/pulp/api/v3/status/ | jq '.'
 
 # Create new remote
-# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/remotes/r/r/" \
+# curl -u admin:password -X POST "http://localhost:8000/pulp/api/v3/remotes/r/r/" \
 #      -H "Content-Type: application/json" \
 #      -d '{
 #            "name": "CRAN Remote",
@@ -64,7 +64,7 @@ oci-env compose up
 
 
 # Create new repository
-# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/repositories/r/r/" \
+# curl -u admin:password -X POST "http://localhost:8000/pulp/api/v3/repositories/r/r/" \
 #      -H "Content-Type: application/json" \
 #      -d '{
 #            "name": "CRAN Repository",
@@ -73,7 +73,7 @@ oci-env compose up
 
 
 # Sync repository
-# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/repositories/r/r/<repository-href>/sync/" \
+# curl -u admin:password -X POST "http://localhost:8000/pulp/api/v3/repositories/r/r/<repository-href>/sync/" \
 #      -H "Content-Type: application/json" \
 #      -d '{
 #            "remote": "/pulp/api/v3/remotes/r/r/<remote-href>/",
@@ -81,12 +81,12 @@ oci-env compose up
 #          }'
 
 # Create a publication from the synced repository version
-# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/publications/r/r/" \
+# curl -u admin:password -X POST "http://localhost:8000/pulp/api/v3/publications/r/r/" \
 # -H "Content-Type: application/json" \
 # -d '{ "repository_version": "/pulp/api/v3/repositories/r/r/<repository-href>/versions/1/" }'
 
 # Create a distribution from the publication
-# curl -u admin:password -X POST "http://localhost:5001/pulp/api/v3/distributions/r/r/" \
+# curl -u admin:password -X POST "http://localhost:8000/pulp/api/v3/distributions/r/r/" \
 # -H "Content-Type: application/json" \
 # -d '{
 #       "name": "CRAN Distribution",
