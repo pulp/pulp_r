@@ -17,7 +17,7 @@ docker compose up -d
 
 # Function to check if Pulp is ready
 is_pulp_ready() {
-    curl -s -f "${PULP_URL}${PULP_API_ROOT}api/v3/status/" > /dev/null
+    curl -s -f ${PULP_API}/pulp/api/v3/status/ > /dev/null
 }
 
 # Wait for Pulp to be ready
