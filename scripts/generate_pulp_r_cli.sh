@@ -30,6 +30,11 @@ while ! is_pulp_ready; do
     sleep 5
 done
 
+# Reset admin password
+docker compose exec -it pulp bash -c 'pulpcore-manager reset-admin-password --password password'
+
+echo "Admin password has been reset to 'password'"
+
 echo "::group::BINDINGS"
 
 # Clone the pulp-openapi-generator repository if it doesn't exist
@@ -79,14 +84,6 @@ echo "python -c 'from pulpcore.client.pulp_r import RepositoriesRApi; print(Repo
 # Change back to the original directory
 cd ../../pulp_r
 
-# Stop the Pulp server
-docker compose down
-
-# Clean up any leftover containers or volumes
-docker compose down -v
-
-echo "Cleanup completed."
-
 echo "CLI generation completed successfully."
 
 # Example usage of the pulp_r CLI
@@ -121,5 +118,51 @@ except Exception as e:
     print(f"An error occurred: {e}")
 '
 
+# Demonstrate CLI usage
+echo "Demonstrating CLI usage:"
+python -c '
+from pulpcore.client.pulp_r import ApiClient, Configuration, RepositoriesRApi
+
+config = Configuration(host="http://localhost:24817")
+config.username = "admin"
+config.password = "password"
+client = ApiClient(configuration=config)
+api_instance = RepositoriesRApi(client)
+
+# List repositories
+print("Listing repositories:")
+repositories = api_instance.list()
+for repo in repositories.results:
+    print(f"Repository: {repo.name}, HREF: {repo.pulp_href}")
+'
+
+# Demonstrate CLI command
+echo "Demonstrating actual CLI command:"
+pulp r repository list
+
 # Deactivate the virtual environment
 deactivate
+
+# Instructions for uploading to PyPI
+echo "To upload the CLI package to PyPI, follow these steps:"
+echo "1. Ensure you have an account on PyPI (https://pypi.org)"
+echo "2. Install twine: pip install twine"
+echo "3. Navigate to the r_client directory: cd r_client"
+echo "4. Build the distribution: python setup.py sdist bdist_wheel"
+echo "5. Upload to PyPI: twine upload dist/*"
+
+echo "To use the CLI commands:"
+echo "1. Install the package: pip install pulp-r-client"
+echo "2. Use commands like:"
+echo "   pulp r repository list"
+echo "   pulp r repository create --name my_repo"
+echo "   pulp r repository update --name my_repo --description 'Updated description'"
+echo "   pulp r repository destroy --name my_repo"
+
+# Stop the Pulp server
+docker compose down
+
+# Clean up any leftover containers or volumes
+docker compose down -v
+
+echo "Cleanup completed."
