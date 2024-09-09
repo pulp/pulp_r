@@ -48,4 +48,6 @@ This script will execute the test suite and provide you with the test results.
 
 We welcome contributions to the Pulp R Content Plugin! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request on the GitHub repository.
 
+Please refer to the [mutable wiki](https://wiki.mutable.ai/pulp/pulp_r) for more detailed documentation of the architecture.
+
 Happy packaging with Pulp R!
