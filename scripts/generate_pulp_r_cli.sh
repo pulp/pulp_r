@@ -2,6 +2,9 @@
 
 set -e
 
+# Trap to ensure we clean up the pulp-cli directory
+trap 'rm -rf pulp-cli' EXIT
+
 # The openapi generator expects the PULP_API to be on port 24817
 export PULP_API="http://localhost:24817"
 export PULP_API_ROOT="/pulp/"
@@ -52,7 +55,7 @@ python -m venv temp_venv
 source temp_venv/bin/activate
 
 # Install required packages
-pip install packaging
+pip install packaging toml
 
 echo "Generating the Python bindings for ${COMPONENT}"
 
@@ -118,8 +121,8 @@ except Exception as e:
     print(f"An error occurred: {e}")
 '
 
-# Demonstrate CLI usage
-echo "Demonstrating CLI usage:"
+# Demonstrate SDK usage
+echo "Demonstrating SDK usage:"
 python -c '
 from pulpcore.client.pulp_r import ApiClient, Configuration, RepositoriesRApi
 
@@ -136,33 +139,69 @@ for repo in repositories.results:
     print(f"Repository: {repo.name}, HREF: {repo.pulp_href}")
 '
 
+# CLI Usage
+
+git clone https://github.com/pulp/pulp-cli.git
+cd pulp-cli
+# Create the CLI module for pulp_r_client
+mkdir -p pulp_r_client/cli
+cat > pulp_r_client/cli/__init__.py <<EOL
+from pulpcore.cli.common import main
+from pulpcore.cli.core.context import PulpContext, pass_pulp_context
+from pulpcore.cli.core.generic import list_entities, show_version
+
+@main.group()
+@pass_pulp_context
+def r(pulp_ctx: PulpContext):
+    "Command group for Pulp R Content"
+
+@r.command()
+@pass_pulp_context
+def version(pulp_ctx: PulpContext):
+    "Show version of pulp_r"
+    show_version(pulp_ctx, "pulp_r")
+
+@r.group()
+@pass_pulp_context
+def repository(pulp_ctx: PulpContext):
+    "Manage R repositories"
+
+@repository.command()
+@pass_pulp_context
+def list(pulp_ctx: PulpContext):
+    "List R repositories"
+    list_entities(pulp_ctx, "r", "repositories")
+EOL
+
+# Update pyproject.toml to include pulp_r using Python
+python - <<EOF
+import toml
+
+# Read the existing pyproject.toml
+with open('pyproject.toml', 'r') as f:
+    config = toml.load(f)
+
+# Add the new entry point
+config['project']['entry-points']['pulp_cli.plugins']['r'] = "pulp_r_client.cli"
+
+# Write the updated pyproject.toml
+with open('pyproject.toml', 'w') as f:
+    toml.dump(config, f)
+EOF
+
+# Install pulp-cli and its dependencies
+pip install -e . -e ./pulp-glue
+
+# Install the pulp_r plugin
+pip install -e ../r_client
+
+# Run pulp CLI
+echo "Running pulp CLI:"
+pulp status
+
+# Example of using pulp CLI with the new r plugin
+echo "Example of using pulp CLI with the new r plugin:"
+
 # Demonstrate CLI command
 echo "Demonstrating actual CLI command:"
 pulp r repository list
-
-# Deactivate the virtual environment
-deactivate
-
-# Instructions for uploading to PyPI
-echo "To upload the CLI package to PyPI, follow these steps:"
-echo "1. Ensure you have an account on PyPI (https://pypi.org)"
-echo "2. Install twine: pip install twine"
-echo "3. Navigate to the r_client directory: cd r_client"
-echo "4. Build the distribution: python setup.py sdist bdist_wheel"
-echo "5. Upload to PyPI: twine upload dist/*"
-
-echo "To use the CLI commands:"
-echo "1. Install the package: pip install pulp-r-client"
-echo "2. Use commands like:"
-echo "   pulp r repository list"
-echo "   pulp r repository create --name my_repo"
-echo "   pulp r repository update --name my_repo --description 'Updated description'"
-echo "   pulp r repository destroy --name my_repo"
-
-# Stop the Pulp server
-docker compose down
-
-# Clean up any leftover containers or volumes
-docker compose down -v
-
-echo "Cleanup completed."
