@@ -9,6 +9,9 @@ dev-sync-cran: bootstrap-server
 dev-run-tests: bootstrap-server
 	./scripts/run_tests.sh
 
+dev-run-performance-tests: bootstrap-server
+	./scripts/run_tests.sh
+
 dev-download-r-package: dev-sync-cran
 	./scripts/download_r_package.sh
 
