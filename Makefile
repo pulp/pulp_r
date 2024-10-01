@@ -23,3 +23,6 @@ generate-pulp-r-cli:
 
 oci-env-setup:
 	./scripts/oci_env_setup.sh
+
+test-customizable-syncs:
+	./scripts/test_customizable_syncs.sh
