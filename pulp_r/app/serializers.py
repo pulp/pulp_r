@@ -94,13 +94,6 @@ class RPublicationSerializer(platform.PublicationSerializer):
     A Serializer for RPublication.
     """
 
-    repository_version = serializers.CharField(
-        help_text=_("Repository Version to be published"),
-        required=True,
-        label=_("Repository Version"),
-        write_only=True,
-    )
-
     class Meta:
         fields = platform.PublicationSerializer.Meta.fields
         model = models.RPublication
